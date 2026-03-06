@@ -230,9 +230,61 @@ class STB_AddonPreferences(AddonPreferences):
         col.prop(self, "enable_quality_assessment")
         col.separator()
         col.label(text="Target is optional hint. Quality assessment is for turn-based ReAct only.", icon="INFO")
-
+        
+        # Dependencies box
+        box = layout.box()
+        box.label(text="Python Dependencies", icon="PACKAGE")
+        col = box.column(align=True)
+        col.label(text="Click below to install required Python packages into Blender's Python:", icon="INFO")
+        col.operator("stb.install_dependencies", icon="IMPORT")
+        col.separator()
 
 # ───────── Minimal operator and panels so UI never crashes ─────────
+class STB_OT_InstallDependencies(bpy.types.Operator):
+    bl_idname = "stb.install_dependencies"
+    bl_label = "Install Python Dependencies"
+    bl_description = "Install required packages (openai, google-genai, etc.) from requirements.txt into Blender's Python"
+
+    def execute(self, context):
+        import subprocess
+        import sys
+        import os
+        
+        addon_dir = os.path.dirname(os.path.abspath(__file__))
+        req_file = os.path.join(addon_dir, "requirements.txt")
+        
+        if not os.path.isfile(req_file):
+            self.report({'ERROR'}, f"requirements.txt not found in {addon_dir}")
+            return {'CANCELLED'}
+            
+        try:
+            # Install packages into Blender's Python
+            self.report({'INFO'}, "Installing dependencies... Check system console for details.")
+            print(f"[SpeechToBlender] Installing dependencies from {req_file} using {sys.executable}")
+            
+            # Using call instead of run to not freeze Blender completely if it takes long,
+            # but run is safer for error handling. We'll use run with a timeout.
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-r", req_file, "--disable-pip-version-check"],
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+            
+            if result.returncode == 0:
+                self.report({'INFO'}, "Successfully installed dependencies! Please restart Blender.")
+                print(f"[SpeechToBlender] ✅ Dependencies installed successfully.\n{result.stdout}")
+                return {'FINISHED'}
+            else:
+                self.report({'ERROR'}, "Failed to install dependencies. Check console.")
+                print(f"[SpeechToBlender] ❌ Failed to install dependencies.\n{result.stderr}")
+                return {'CANCELLED'}
+        except Exception as e:
+            self.report({'ERROR'}, f"Error installing dependencies: {e}")
+            print(f"[SpeechToBlender] ❌ Error installing dependencies: {e}")
+            return {'CANCELLED'}
+
+
 class STB_OT_MeshyGenerate(bpy.types.Operator):
     bl_idname = "stb.meshy_generate"
     bl_label = "Generate with Meshy"
@@ -1910,39 +1962,43 @@ def _bundled_python_exe():
     return None
 
 
-def _ensure_openai_installed():
-    """Ensure openai package is installed in bundled Python (if available)."""
+def _ensure_dependencies_installed():
+    """Ensure required packages are installed in the resolved Python environment."""
     try:
-        bundled_py = _bundled_python_exe()
-        if not bundled_py:
-            # No bundled Python, skip check
-            return True
-        
-        # Check if openai is already installed
+        py_exe = _resolve_python_exe()
+        if not py_exe:
+            return False
+            
+        # Check if openai is already installed as a quick proxy for all dependencies
         result = subprocess.run(
-            [bundled_py, "-c", "import openai"],
+            [py_exe, "-c", "import openai, google.genai, websockets, pyaudio"],
             capture_output=True,
             timeout=5
         )
         if result.returncode == 0:
             return True
-        
-        # Install openai silently
-        print("[SpeechToBlender] Installing openai package in bundled Python...")
+            
+        # Try to install from requirements.txt quietly
+        addon_dir = os.path.dirname(os.path.abspath(__file__))
+        req_file = os.path.join(addon_dir, "requirements.txt")
+        if not os.path.isfile(req_file):
+            return False
+            
+        print("[SpeechToBlender] Missing dependencies detected. Installing...")
         result = subprocess.run(
-            [bundled_py, "-m", "pip", "install", "openai", "--quiet", "--disable-pip-version-check"],
+            [py_exe, "-m", "pip", "install", "-r", req_file, "--quiet", "--disable-pip-version-check"],
             capture_output=True,
-            timeout=120
+            timeout=300
         )
         if result.returncode == 0:
-            print("[SpeechToBlender] ✅ openai package installed successfully")
+            print("[SpeechToBlender] ✅ Dependencies installed successfully")
             return True
         else:
             error_msg = result.stderr.decode("utf-8", errors="ignore") if result.stderr else "Unknown error"
-            print(f"[SpeechToBlender] ⚠️ Failed to install openai: {error_msg[:200]}")
+            print(f"[SpeechToBlender] ⚠️ Failed to install dependencies: {error_msg[:200]}")
             return False
     except Exception as e:
-        print(f"[SpeechToBlender] ⚠️ Error checking/installing openai: {e}")
+        print(f"[SpeechToBlender] ⚠️ Error checking/installing dependencies: {e}")
         return False
 
 
@@ -2168,10 +2224,10 @@ class STB_OT_LiveStart(bpy.types.Operator):
                 self.report({'ERROR'}, f"Couldn't start RPC server (port {PORT} in use?)")
                 return {'CANCELLED'}
 
-        # Resolve bundled Python for Live runner
-        python_exe = _bundled_python_exe()
-        if not python_exe or not os.path.isfile(python_exe):
-            self.report({'ERROR'}, "Bundled runtime missing: stb_runtime/python/python.exe")
+        # Resolve Python for Live runner
+        python_exe = _resolve_python_exe()
+        if not python_exe:
+            self.report({'ERROR'}, "Python missing. Try 'Install Python Dependencies' in preferences.")
             return {'CANCELLED'}
 
         addon_dir = os.path.dirname(os.path.abspath(__file__))
@@ -2657,6 +2713,7 @@ class STB_PT_VoiceMode(Panel):
 # ───────── Safe stub: lazy import inside register, timers last ─────────
 _CLASSES = (
     STB_AddonPreferences,
+    STB_OT_InstallDependencies,
     STB_OT_MeshyGenerate,
     STB_PT_MeshyTools,
     STB_PT_MeshyStatus,
@@ -2728,7 +2785,7 @@ def register():
         print("[SpeechToBlender] Registered Alt+F shortcut for voice listening toggle")
 
     # 4) ensure openai is available in bundled Python
-    _ensure_openai_installed()
+    _ensure_dependencies_installed()
 
     # 6) lazy import real module, never crash on error
     try:

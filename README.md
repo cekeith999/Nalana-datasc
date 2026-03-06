@@ -31,7 +31,17 @@ cd Nalana-datasc
 4. Navigate to the repo and select the `SpeechToBlender/` folder (or the ZIP if provided)
 5. Enable the add-on by checking the box next to **"Blender STB Tool"**
 
-### Step 3: Set Up API Keys
+### Step 3: Install Python Dependencies
+
+Since Nalana relies on external AI models, it needs a few extra Python packages.
+
+1. In Blender, go back to **Edit → Preferences → Add-ons → Speech To Blender**
+2. Scroll down to the **Python Dependencies** section
+3. Click the **"Install Python Dependencies"** button
+4. Wait for it to finish (it may take a minute and show info in the system console)
+5. **Restart Blender** to ensure the new modules are loaded
+
+### Step 4: Set Up API Keys
 
 The add-on needs an AI API key to handle complex voice commands. **You don't need to create your own — Clarence will provide the team with shared API keys at the first meeting.** Once you have a key:
 
@@ -39,7 +49,7 @@ The add-on needs an AI API key to handle complex voice commands. **You don't nee
 2. Paste the key Clarence provides
 3. Select the AI model (Clarence will tell you which one to use)
 
-### Step 4: Test It
+### Step 5: Test It
 
 1. In Blender, open the **STB** panel (press `N` to open the right sidebar, click the **"STB"** tab)
 2. Click **"Start RPC"** — a console window will open
