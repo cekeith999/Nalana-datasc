@@ -32,10 +32,10 @@ artifacts/
 
 # Distribution packages (too large for git)
 *.zip
-SpeechToBlender_*.zip
+Nalana_*.zip
 
 # Bundled runtime (too large, users get it from releases)
-stb_runtime/
+nalana_runtime/
 
 # Packaging scripts (dev tools)
 package_mvp.ps1
@@ -46,3 +46,7 @@ cursor_detailed_model_communication_out.md
 
 # Temporary packaging directories
 *_MVP_temp/
+
+# Local Sync Scripts
+sync_to_github.bat
+auto_sync_background.ps1

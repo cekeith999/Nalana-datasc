@@ -1,4 +1,4 @@
-# Speech To Blender/stb_core/providers/meshy.py
+# Nalana/nalana_core/providers/meshy.py
 # MeshyProvider — submit jobs, poll status, fetch results, and async import into Blender.
 
 from typing import Dict, Any, List, Optional, Tuple
@@ -358,7 +358,7 @@ class MeshyProvider:
         return files[0]
 
     def _download_to_temp(self, url: str) -> pathlib.Path:
-        tmpdir = pathlib.Path(tempfile.mkdtemp(prefix="stb_meshy_"))
+        tmpdir = pathlib.Path(tempfile.mkdtemp(prefix="nalana_meshy_"))
         parsed = urllib.parse.urlparse(url)
         name = os.path.basename(parsed.path) or "meshy_model"
         dest = tmpdir / name

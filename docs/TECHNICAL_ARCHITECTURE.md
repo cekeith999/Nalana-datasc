@@ -1,8 +1,8 @@
-# Speech To Blender: Technical Architecture Documentation
+# Nalana: Technical Architecture Documentation
 
 ## Overview
 
-Speech To Blender is a voice-controlled Blender add-on that enables natural language interaction with Blender's 3D modeling capabilities. The system uses a multi-tier architecture with local processing, cloud AI services, and an RPC bridge for communication.
+Nalana is a voice-controlled Blender add-on that enables natural language interaction with Blender's 3D modeling capabilities. The system uses a multi-tier architecture with local processing, cloud AI services, and an RPC bridge for communication.
 
 **Last Updated**: November 7, 2025
 
@@ -47,7 +47,7 @@ Blender Scene Modification
 
 ### 1. Voice Script (`voice_to_blender.py`)
 
-**Location**: `SpeechToBlender/voice_to_blender.py`
+**Location**: `Nalana/voice_to_blender.py`
 
 **Purpose**: Main voice processing script that runs as a separate Python process outside Blender.
 
@@ -83,7 +83,7 @@ Blender Scene Modification
 
 ### 2. Blender Add-on (`__init__.py`)
 
-**Location**: `SpeechToBlender/__init__.py`
+**Location**: `Nalana/__init__.py`
 
 **Purpose**: Blender add-on that hosts the RPC server and executes commands safely.
 
@@ -132,13 +132,13 @@ Blender Scene Modification
 
 ---
 
-### 3. STB Core (`stb_core/`)
+### 3. Nalana Core (`nalana_core/`)
 
-**Location**: `SpeechToBlender/stb_core/`
+**Location**: `Nalana/nalana_core/`
 
 **Purpose**: Core functionality for providers, commands, and pipeline management.
 
-#### Providers (`stb_core/providers/`)
+#### Providers (`nalana_core/providers/`)
 
 **Meshy Provider** (`meshy.py`):
 - **Purpose**: Integration with Meshy.ai API for text-to-3D generation
@@ -162,7 +162,7 @@ Blender Scene Modification
 - Provider registration system
 - Allows dynamic provider loading
 
-#### Commands (`stb_core/commands/`)
+#### Commands (`nalana_core/commands/`)
 
 **Safety** (`safety.py`):
 - Command safety validation
@@ -196,7 +196,7 @@ Blender Scene Modification
 - **Speed**: ~200-500ms transcription time
 - **Language**: English (configurable)
 
-**Location**: `stb_runtime/whisper/whisper-cli.exe`
+**Location**: `nalana_runtime/whisper/whisper-cli.exe`
 
 **Usage**:
 ```python
@@ -282,7 +282,7 @@ Never use file/quit/addon/script/image.save operators.
 
 The system does not currently use any databases. All data is stored in:
 
-1. **Blender Preferences** (`bpy.context.preferences.addons["SpeechToBlender"]`):
+1. **Blender Preferences** (`bpy.context.preferences.addons["Nalana"]`):
    - OpenAI API key (split into two parts)
    - Meshy API key
    - Super Mode target object
@@ -352,7 +352,7 @@ For future phases, local transformers may be needed for:
 **Core Dependencies** (`requirements.txt`):
 - `openai>=2.7.0`: GPT-4o API client
 
-**Runtime Dependencies** (bundled in `stb_runtime/`):
+**Runtime Dependencies** (bundled in `nalana_runtime/`):
 - `numpy`: Audio processing, array operations
 - `sounddevice`: Microphone input/output
 - `faster-whisper`: Speech-to-text (via whisper-cli.exe, not Python package)
@@ -373,11 +373,11 @@ For future phases, local transformers may be needed for:
 
 1. **whisper-cli.exe**:
    - C++ implementation of Whisper
-   - Location: `stb_runtime/whisper/whisper-cli.exe`
+   - Location: `nalana_runtime/whisper/whisper-cli.exe`
    - Model files: `ggml-tiny.en.bin`, etc.
 
 2. **Bundled Python Runtime**:
-   - Location: `stb_runtime/python/`
+   - Location: `nalana_runtime/python/`
    - Self-contained Python 3.11 installation
    - Includes all dependencies pre-installed
 
@@ -507,13 +507,13 @@ For future phases, local transformers may be needed for:
 ## File Structure
 
 ```
-SpeechToBlender/
+Nalana/
 ├── __init__.py                 # Blender add-on entry point
 ├── voice_to_blender.py          # Voice processing script
 ├── voice_to_blender.bat         # Windows batch wrapper
 ├── requirements.txt             # Python dependencies
 │
-├── stb_core/                    # Core functionality
+├── nalana_core/                    # Core functionality
 │   ├── __init__.py
 │   ├── config.py                # Configuration management
 │   ├── pipeline.py              # Pipeline orchestration
@@ -526,7 +526,7 @@ SpeechToBlender/
 │       ├── mock.py              # Mock provider (testing)
 │       └── registry.py         # Provider registry
 │
-├── stb_runtime/                 # Bundled runtime
+├── nalana_runtime/                 # Bundled runtime
 │   ├── python/                  # Python 3.11 runtime
 │   │   ├── python.exe
 │   │   └── Lib/
@@ -611,7 +611,7 @@ SpeechToBlender/
 
 ### Blender Preferences
 
-Stored in `bpy.context.preferences.addons["SpeechToBlender"]`:
+Stored in `bpy.context.preferences.addons["Nalana"]`:
 - `openai_api_key_part1`: First part of OpenAI API key
 - `openai_api_key_part2`: Second part of OpenAI API key
 - `meshy_api_key`: Meshy.ai API key

@@ -1,9 +1,9 @@
 # addon/ui_progress.py
 import os, sys, json, bpy
 
-# --- find repo root (folder containing 'stb_core' and 'addon') ---
+# --- find repo root (folder containing 'nalana_core' and 'addon') ---
 HERE = os.path.abspath(os.path.dirname(__file__))
-def _find_repo_root(start_dir: str, target: str = "stb_core", max_up: int = 6):
+def _find_repo_root(start_dir: str, target: str = "nalana_core", max_up: int = 6):
     cur = start_dir
     for _ in range(max_up):
         if os.path.isdir(os.path.join(cur, target)): return cur
@@ -33,15 +33,15 @@ def _progress_timer():
     try:
         with open(PROGRESS_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        wm.stb_job_id = str(data.get("job_id", ""))
-        wm.stb_state = str(data.get("state", "unknown"))
+        wm.nalana_job_id = str(data.get("job_id", ""))
+        wm.nalana_state = str(data.get("state", "unknown"))
         p = int(data.get("progress", 0))
-        wm.stb_progress = max(0, min(100, p))
+        wm.nalana_progress = max(0, min(100, p))
     except FileNotFoundError:
         # nothing to show yet; leave values as-is
         pass
     except Exception as e:
-        wm.stb_state = f"error: {e!s}"[:128]
+        wm.nalana_state = f"error: {e!s}"[:128]
 
     _tag_redraw()
     return 0.5  # call again in 0.5s
@@ -66,49 +66,49 @@ def stop_monitor():
 # --- props, operators, panel ---
 def _ensure_props():
     wm = bpy.types.WindowManager
-    if not hasattr(wm, "stb_progress"):
-        wm.stb_progress = bpy.props.IntProperty(
+    if not hasattr(wm, "nalana_progress"):
+        wm.nalana_progress = bpy.props.IntProperty(
             name="Progress", min=0, max=100, default=0
         )
-    if not hasattr(wm, "stb_job_id"):
-        wm.stb_job_id = bpy.props.StringProperty(name="Job ID", default="")
-    if not hasattr(wm, "stb_state"):
-        wm.stb_state = bpy.props.StringProperty(name="State", default="idle")
+    if not hasattr(wm, "nalana_job_id"):
+        wm.nalana_job_id = bpy.props.StringProperty(name="Job ID", default="")
+    if not hasattr(wm, "nalana_state"):
+        wm.nalana_state = bpy.props.StringProperty(name="State", default="idle")
 
-class STB_OT_StartMonitor(bpy.types.Operator):
-    bl_idname = "stb.start_monitor"
+class NALANA_OT_StartMonitor(bpy.types.Operator):
+    bl_idname = "nalana.start_monitor"
     bl_label  = "Start Monitor"
     bl_description = "Start reading logs/progress.json periodically"
     def execute(self, ctx): return start_monitor()
 
-class STB_OT_StopMonitor(bpy.types.Operator):
-    bl_idname = "stb.stop_monitor"
+class NALANA_OT_StopMonitor(bpy.types.Operator):
+    bl_idname = "nalana.stop_monitor"
     bl_label  = "Stop Monitor"
     bl_description = "Stop reading progress"
     def execute(self, ctx): return stop_monitor()
 
-class STB_PT_Progress(bpy.types.Panel):
-    bl_label = "SpeechToBlender • Progress"
-    bl_idname = "STB_PT_Progress"
+class NALANA_PT_Progress(bpy.types.Panel):
+    bl_label = "Nalana • Progress"
+    bl_idname = "NALANA_PT_Progress"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "STB"   # <- change from "SpeechToBlender" to "STB"
+    bl_category = "Nalana"   # <- change from "Nalana" to "Nalana"
 
 
     def draw(self, context):
         wm = context.window_manager
         col = self.layout.column(align=True)
-        col.label(text=f"Job: {wm.stb_job_id or '—'}")
-        col.label(text=f"State: {wm.stb_state or '—'}")
+        col.label(text=f"Job: {wm.nalana_job_id or '—'}")
+        col.label(text=f"State: {wm.nalana_state or '—'}")
         row = col.row(align=True)
-        row.prop(wm, "stb_progress", text="Progress")
+        row.prop(wm, "nalana_progress", text="Progress")
         col = self.layout.column(align=True)
         if not _TIMER_RUNNING:
-            col.operator("stb.start_monitor", icon="PLAY")
+            col.operator("nalana.start_monitor", icon="PLAY")
         else:
-            col.operator("stb.stop_monitor", icon="PAUSE")
+            col.operator("nalana.stop_monitor", icon="PAUSE")
 
-_CLASSES = (STB_OT_StartMonitor, STB_OT_StopMonitor, STB_PT_Progress)
+_CLASSES = (NALANA_OT_StartMonitor, NALANA_OT_StopMonitor, NALANA_PT_Progress)
 
 def register():
     _ensure_props()

@@ -1,8 +1,8 @@
 # addon/command_exec.py
 import bpy
 from typing import Dict, Any
-from stb_core.commands.schema import Command
-from stb_core.commands.safety import is_allowed
+from nalana_core.commands.schema import Command
+from nalana_core.commands.safety import is_allowed
 
 # --- import helpers ---
 import bpy, os

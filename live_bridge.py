@@ -1,7 +1,7 @@
 """
-Gemini Live runner for SpeechToBlender.
+Gemini Live runner for Nalana.
 
-This script is executed by the bundled runtime (stb_runtime/python/python.exe)
+This script is executed by the bundled runtime (nalana_runtime/python/python.exe)
 as a separate process. It:
 
 - Streams microphone audio to Gemini Live API
@@ -10,9 +10,9 @@ as a separate process. It:
 - Sends all actions to Blender via XML-RPC `execute` calls
 
 Environment variables (set by the Blender add-on):
-- STB_GEMINI_API_KEY : Gemini API key
-- STB_LIVE_CONTEXT   : System prompt / scene context (optional)
-- STB_RPC_URL        : XML-RPC endpoint (default: http://127.0.0.1:8765/RPC2)
+- NALANA_GEMINI_API_KEY : Gemini API key
+- NALANA_LIVE_CONTEXT   : System prompt / scene context (optional)
+- NALANA_RPC_URL        : XML-RPC endpoint (default: http://127.0.0.1:8765/RPC2)
 """
 
 import asyncio
@@ -64,7 +64,7 @@ CODE_BLACKLIST = (
 async def _run_live_session(api_key: str, system_instruction: str, rpc_url: str):
     """Main async coroutine: handles mic + Gemini Live + XML-RPC back to Blender."""
     print("[LiveRunner] ========================================")
-    print("[LiveRunner] SpeechToBlender - Gemini Live Runner")
+    print("[LiveRunner] Nalana - Gemini Live Runner")
     print("[LiveRunner] ========================================")
     print(f"[LiveRunner] RPC URL: {rpc_url}")
     print(f"[LiveRunner] System instruction length: {len(system_instruction)} chars")
@@ -392,19 +392,19 @@ async def _run_live_session(api_key: str, system_instruction: str, rpc_url: str)
 
 
 def main():
-    print("[LiveRunner] Starting SpeechToBlender Live Runner...")
+    print("[LiveRunner] Starting Nalana Live Runner...")
     print(f"[LiveRunner] Python: {sys.executable}")
     print(f"[LiveRunner] Script: {__file__}")
     
-    api_key = os.environ.get("STB_GEMINI_API_KEY", "").strip()
+    api_key = os.environ.get("NALANA_GEMINI_API_KEY", "").strip()
     if not api_key:
-        print("[LiveRunner] ❌ Missing STB_GEMINI_API_KEY in environment", file=sys.stderr)
+        print("[LiveRunner] ❌ Missing NALANA_GEMINI_API_KEY in environment", file=sys.stderr)
         print("[LiveRunner] Set this environment variable before running", file=sys.stderr)
         input("\nPress Enter to exit...")
         sys.exit(1)
 
-    system_instruction = os.environ.get("STB_LIVE_CONTEXT", "").strip()
-    rpc_url = os.environ.get("STB_RPC_URL", "http://127.0.0.1:8765/RPC2").strip()
+    system_instruction = os.environ.get("NALANA_LIVE_CONTEXT", "").strip()
+    rpc_url = os.environ.get("NALANA_RPC_URL", "http://127.0.0.1:8765/RPC2").strip()
     
     print(f"[LiveRunner] API key: {'*' * min(len(api_key), 20)}... ({len(api_key)} chars)")
     print(f"[LiveRunner] Context: {len(system_instruction)} chars")

@@ -1,7 +1,7 @@
-# stb_core/pipeline.py
+# nalana_core/pipeline.py
 import time
 from typing import Dict, Any, Callable
-# stb_core/progress.py
+# nalana_core/progress.py
 import os, json, time
 from typing import Dict, Any
 

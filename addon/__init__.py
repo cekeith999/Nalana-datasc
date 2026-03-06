@@ -1,27 +1,27 @@
 bl_info = {
-    "name": "Blender STB Tool (RPC Server tab, voice controls, progress bar) – with Safety Gate + Meshy",
+    "name": "Blender Nalana Tool (RPC Server tab, voice controls, progress bar) – with Safety Gate + Meshy",
     "author": "you",
     "version": (0, 7, 0),
     "blender": (3, 6, 0),
     "category": "System",
-    "location": "3D View > N-panel > STB",
+    "location": "3D View > N-panel > Nalana",
     "description": "XML-RPC server + Voice launcher with diagnostics, operator Safety Gate, and Meshy text→3D import (API only)",
 }
 
-# --- bootstrap: locate a parent folder that contains 'stb_core' and add it to sys.path
+# --- bootstrap: locate a parent folder that contains 'nalana_core' and add it to sys.path
 import os, sys
 import bpy
 from bpy.props import StringProperty, EnumProperty
 
-# Add-on root key, e.g. "SpeechToBlender"
-ADDON_ROOT = (__package__ or __name__).split(".")[0]  # resolves to "SpeechToBlender"
+# Add-on root key, e.g. "Nalana"
+ADDON_ROOT = (__package__ or __name__).split(".")[0]  # resolves to "Nalana"
 
 
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-def _find_repo_root(start_dir: str, target: str = "stb_core", max_up: int = 6):
+def _find_repo_root(start_dir: str, target: str = "nalana_core", max_up: int = 6):
     cur = start_dir
     for _ in range(max_up):
         if os.path.isdir(os.path.join(cur, target)):
@@ -35,8 +35,8 @@ def _find_repo_root(start_dir: str, target: str = "stb_core", max_up: int = 6):
 REPO_ROOT = _find_repo_root(HERE)
 if not REPO_ROOT:
     raise ImportError(
-        f"Could not locate 'stb_core' within 6 parent folders of {HERE}. "
-        "Ensure your structure is: <repo>/(addon, stb_core, config)"
+        f"Could not locate 'nalana_core' within 6 parent folders of {HERE}. "
+        "Ensure your structure is: <repo>/(addon, nalana_core, config)"
     )
 
 if REPO_ROOT not in sys.path:
@@ -45,7 +45,7 @@ if REPO_ROOT not in sys.path:
 
 
 
-from stb_core.config import load_config
+from nalana_core.config import load_config
 CFG = load_config(REPO_ROOT)
 # ------------------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ try:
     from addon import ui_progress
     _HAS_UI_PROGRESS = True
 except Exception as e:
-    print(f"[STB] ui_progress not available: {e}")
+    print(f"[Nalana] ui_progress not available: {e}")
     _HAS_UI_PROGRESS = False
 
 # Safe command executor hook
@@ -119,7 +119,7 @@ def _get_addon_prefs():
     """
     try:
         addons = bpy.context.preferences.addons
-        # Preferred: top-level package folder name (e.g. "Speech To Blender")
+        # Preferred: top-level package folder name (e.g. "Nalana")
         key = ADDON_ROOT
         if key in addons:
             return addons[key].preferences, True
@@ -142,17 +142,17 @@ def _get_effective_voice_path():
 
 def _bundled_python_exe():
     # self-contained portable interpreter
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "stb_runtime", "python", "python.exe")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "nalana_runtime", "python", "python.exe")
 
 def _bundled_cli_path():
     # self-contained whisper CLI next to the portable python
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "stb_runtime", "whisper", "whisper-cli.bat")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "nalana_runtime", "whisper", "whisper-cli.bat")
 
 # --- resolve a Python to run the voice script ---
 def _resolve_python_exe():
     """
     Choose a working Python:
-      1) bundled ./stb_runtime/python/python.exe (must run)
+      1) bundled ./nalana_runtime/python/python.exe (must run)
       2) user override (UI field)
       3) current interpreter (sys.executable)
       4) PATH 'python'
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     "whisper-cli.bat": r'''@echo off
 setlocal
 set PY=python
-if not "%STB_PYTHON_EXE%"=="" set PY="%STB_PYTHON_EXE%"
+if not "%NALANA_PYTHON_EXE%"=="" set PY="%NALANA_PYTHON_EXE%"
 set CLI=%~dp0whisper_cli.py
 %PY% "%CLI%" %*
 '''
@@ -794,7 +794,7 @@ def _start_voice_process(py_path):
             env["WHISPER_CLI"] = bcli
 
         # let batch wrappers know which python to run
-        env["STB_PYTHON_EXE"] = resolved
+        env["NALANA_PYTHON_EXE"] = resolved
 
         # Fallback: create/install a user-scripts CLI if bundled isn't present
         if "WHISPER_CLI" not in env:
@@ -994,11 +994,11 @@ class RPCBRIDGE_OT_validate(bpy.types.Operator):
 
 # ====== PANELS ======
 class RPCBRIDGE_PT_panel(bpy.types.Panel):
-    bl_label = "Speech To Blender"
+    bl_label = "Nalana"
     bl_idname = "RPCBRIDGE_PT_panel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "STB"  # Sidebar tab label
+    bl_category = "Nalana"  # Sidebar tab label
     def draw(self, context):
         wm = context.window_manager
         layout = self.layout
@@ -1075,12 +1075,12 @@ _CLASSES = (
 
 
 
-class STB_PT_MeshyStatus(bpy.types.Panel):
+class NALANA_PT_MeshyStatus(bpy.types.Panel):
     bl_label = "Meshy Status"
-    bl_idname = "STB_PT_meshy_status"
+    bl_idname = "NALANA_PT_meshy_status"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'STB'  # Sidebar tab label
+    bl_category = 'Nalana'  # Sidebar tab label
 
     def draw(self, context):
         layout = self.layout
@@ -1090,8 +1090,8 @@ class STB_PT_MeshyStatus(bpy.types.Panel):
         row.label(text=f"{status}")
 
 # --- Meshy: one-click operator ---
-class STB_OT_MeshyGenerate(bpy.types.Operator):
-    bl_idname = "stb.meshy_generate"
+class NALANA_OT_MeshyGenerate(bpy.types.Operator):
+    bl_idname = "nalana.meshy_generate"
     bl_label  = "Generate with Meshy"
     bl_description = "Submit a Meshy Text-to-3D job and auto-import when ready (non-blocking)"
     bl_options = {'REGISTER', 'INTERNAL'}
@@ -1099,7 +1099,7 @@ class STB_OT_MeshyGenerate(bpy.types.Operator):
     def execute(self, context):
         import os
         wm = context.window_manager
-        prompt = getattr(wm, "stb_meshy_prompt", "").strip()
+        prompt = getattr(wm, "nalana_meshy_prompt", "").strip()
         if not prompt:
             self.report({'WARNING'}, "Prompt is empty.")
             return {'CANCELLED'}
@@ -1120,7 +1120,7 @@ class STB_OT_MeshyGenerate(bpy.types.Operator):
         fmts_csv = getattr(prefs, "meshy_formats", "glb,fbx,obj")
         dl_pref  = [s.strip().lower() for s in fmts_csv.split(",") if s.strip()]
 
-        from stb_core.providers import meshy as meshy_mod
+        from nalana_core.providers import meshy as meshy_mod
         prov = meshy_mod.MeshyProvider({
             "api_key_env": "MESHY_API_KEY",
             "base_url": base_url,
@@ -1135,7 +1135,7 @@ class STB_OT_MeshyGenerate(bpy.types.Operator):
 
         try:
             meshy_mod.meshy_submit_and_import_async(
-                prov, capability="text2mesh", mode=mode, title="STB Generate", prompt=prompt
+                prov, capability="text2mesh", mode=mode, title="Nalana Generate", prompt=prompt
             )
             self.report({'INFO'}, f"Submitted Meshy job: “{prompt[:48]}”")
         except Exception as e:
@@ -1146,18 +1146,18 @@ class STB_OT_MeshyGenerate(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class STB_PT_MeshyTools(bpy.types.Panel):
+class NALANA_PT_MeshyTools(bpy.types.Panel):
     bl_label = "Meshy Tools"
-    bl_idname = "STB_PT_MeshyTools"
+    bl_idname = "NALANA_PT_MeshyTools"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'STB'   # keep everything under your STB tab
+    bl_category = 'Nalana'   # keep everything under your Nalana tab
 
     def draw(self, context):
         layout = self.layout
         wm = context.window_manager
-        layout.prop(wm, "stb_meshy_prompt", text="Prompt")
-        layout.operator("stb.meshy_generate", icon='PLAY')
+        layout.prop(wm, "nalana_meshy_prompt", text="Prompt")
+        layout.operator("nalana.meshy_generate", icon='PLAY')
 
 def _ensure_status_key():
     try:
@@ -1173,14 +1173,14 @@ def register():
         try:
             bpy.utils.register_class(cls)
         except Exception as e:
-            print(f"[STB] failed to register {getattr(cls, '__name__', cls)}: {e}")
+            print(f"[Nalana] failed to register {getattr(cls, '__name__', cls)}: {e}")
 
     # Register the progress panel (does NOT start any timers by itself)
     if _HAS_UI_PROGRESS:
         try:
             ui_progress.register()
         except Exception as e:
-            print(f"[STB] ui_progress.register() failed: {e}")
+            print(f"[Nalana] ui_progress.register() failed: {e}")
 
     # --- Meshy: Add-on Preferences (for base URL, model, mode, formats) ---
 
@@ -1188,34 +1188,34 @@ def register():
     try:
         _ensure_status_key()  # make sure wm["meshy_status"] exists
     except Exception as e:
-        print(f"[STB] _ensure_status_key() failed: {e}")
+        print(f"[Nalana] _ensure_status_key() failed: {e}")
     try:
-        bpy.utils.register_class(STB_PT_MeshyStatus)
+        bpy.utils.register_class(NALANA_PT_MeshyStatus)
     except Exception as e:
-        print(f"[STB] failed to register STB_PT_MeshyStatus: {e}")
+        print(f"[Nalana] failed to register NALANA_PT_MeshyStatus: {e}")
 
     # --- Meshy one-click operator + tools panel ---
     # Prompt property
     try:
-        if not hasattr(bpy.types.WindowManager, "stb_meshy_prompt"):
-            bpy.types.WindowManager.stb_meshy_prompt = bpy.props.StringProperty(
+        if not hasattr(bpy.types.WindowManager, "nalana_meshy_prompt"):
+            bpy.types.WindowManager.nalana_meshy_prompt = bpy.props.StringProperty(
                 name="Meshy Prompt",
                 default="simple low-poly test object"
             )
-            bpy.utils.register_class(STB_OT_MeshyGenerate)   # <-- ensure this line exists
-            bpy.utils.register_class(STB_PT_MeshyTools)
+            bpy.utils.register_class(NALANA_OT_MeshyGenerate)   # <-- ensure this line exists
+            bpy.utils.register_class(NALANA_PT_MeshyTools)
     except Exception as e:
-        print(f"[STB] failed to add WindowManager.stb_meshy_prompt: {e}")
+        print(f"[Nalana] failed to add WindowManager.nalana_meshy_prompt: {e}")
 
     # Operator + Panel
     try:
-        bpy.utils.register_class(STB_OT_MeshyGenerate)
+        bpy.utils.register_class(NALANA_OT_MeshyGenerate)
     except Exception as e:
-        print(f"[STB] failed to register STB_OT_MeshyGenerate: {e}")
+        print(f"[Nalana] failed to register NALANA_OT_MeshyGenerate: {e}")
     try:
-        bpy.utils.register_class(STB_PT_MeshyTools)
+        bpy.utils.register_class(NALANA_PT_MeshyTools)
     except Exception as e:
-        print(f"[STB] failed to register STB_PT_MeshyTools: {e}")
+        print(f"[Nalana] failed to register NALANA_PT_MeshyTools: {e}")
 
     # keep your existing Meshy import timer (unrelated to the progress UI)
     bpy.app.timers.register(_meshy_import_timer, first_interval=3.0)
@@ -1231,27 +1231,27 @@ def unregister():
         try:
             ui_progress.unregister()
         except Exception as e:
-            print(f"[STB] ui_progress.unregister() failed: {e}")
+            print(f"[Nalana] ui_progress.unregister() failed: {e}")
 
     # --- Meshy one-click operator + tools panel ---
     try:
-        bpy.utils.unregister_class(STB_PT_MeshyTools)
+        bpy.utils.unregister_class(NALANA_PT_MeshyTools)
     except Exception as e:
-        print(f"[STB] failed to unregister STB_PT_MeshyTools: {e}")
+        print(f"[Nalana] failed to unregister NALANA_PT_MeshyTools: {e}")
     try:
-        bpy.utils.unregister_class(STB_OT_MeshyGenerate)
+        bpy.utils.unregister_class(NALANA_OT_MeshyGenerate)
     except Exception as e:
-        print(f"[STB] failed to unregister STB_OT_MeshyGenerate: {e}")
+        print(f"[Nalana] failed to unregister NALANA_OT_MeshyGenerate: {e}")
     try:
-        del bpy.types.WindowManager.stb_meshy_prompt
+        del bpy.types.WindowManager.nalana_meshy_prompt
     except Exception:
         pass
 
     # --- Meshy Status panel ---
     try:
-        bpy.utils.unregister_class(STB_PT_MeshyStatus)
+        bpy.utils.unregister_class(NALANA_PT_MeshyStatus)
     except Exception as e:
-        print(f"[STB] failed to unregister STB_PT_MeshyStatus: {e}")
+        print(f"[Nalana] failed to unregister NALANA_PT_MeshyStatus: {e}")
 
     # --- Meshy Add-on Preferences ---
 
@@ -1259,10 +1259,10 @@ def unregister():
         try:
             bpy.utils.unregister_class(cls)
         except Exception as e:
-            print(f"[STB] failed to unregister {getattr(cls, '__name__', cls)}: {e}")
+            print(f"[Nalana] failed to unregister {getattr(cls, '__name__', cls)}: {e}")
 
     try:
-        del bpy.types.WindowManager.stb_meshy_prompt
+        del bpy.types.WindowManager.nalana_meshy_prompt
     except Exception:
         pass
     _print("UNREGISTER OK")

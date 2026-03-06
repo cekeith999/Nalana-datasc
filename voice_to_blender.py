@@ -457,9 +457,9 @@ def _call_unified_ai_api(messages, system_prompt=None, temperature=0, model_over
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# The add-on launcher passes STB_PYTHON_EXE and (if present) WHISPER_CLI.
+# The add-on launcher passes NALANA_PYTHON_EXE and (if present) WHISPER_CLI.
 # Defaults for fully self-contained bundle:
-DEFAULT_BUNDLED_CLI = os.path.join(SCRIPT_DIR, "stb_runtime", "whisper", "whisper-cli.bat")
+DEFAULT_BUNDLED_CLI = os.path.join(SCRIPT_DIR, "nalana_runtime", "whisper", "whisper-cli.bat")
 WHISPER_CLI = os.getenv("WHISPER_CLI", DEFAULT_BUNDLED_CLI)
 
 # faster-whisper model name (not a file path). You can set FW_DEVICE=cpu|cuda|auto in env.
@@ -4411,7 +4411,7 @@ if __name__ == "__main__":
 
         # Text queue file path (for typed commands from Blender UI)
         import tempfile
-        text_queue_file = os.path.join(tempfile.gettempdir(), "stb_text_queue.txt")
+        text_queue_file = os.path.join(tempfile.gettempdir(), "nalana_text_queue.txt")
         
         def check_text_queue():
             """Check for typed text commands from Blender UI"""

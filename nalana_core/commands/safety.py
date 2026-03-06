@@ -1,4 +1,4 @@
-# stb_core/commands/safety.py
+# nalana_core/commands/safety.py
 from typing import Tuple
 from .schema import Command
 

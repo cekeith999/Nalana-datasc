@@ -1,4 +1,4 @@
-# Speech To Blender/stb_core/providers/base.py
+# Nalana/nalana_core/providers/base.py
 from typing import Protocol, Dict, Any
 
 class ModelProvider(Protocol):

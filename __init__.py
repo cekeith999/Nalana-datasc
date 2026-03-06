@@ -1,10 +1,10 @@
 bl_info = {
-    "name": "Speech To Blender",
-    "author": "STB",
+    "name": "Nalana",
+    "author": "Nalana Team",
     "version": (0, 5, 0),
     "blender": (3, 6, 0),
     "category": "System",
-    "description": "Voice Tools for Blender",
+    "description": "Voice-Controlled 3D Creation for Blender",
 }
 
 import bpy
@@ -21,7 +21,7 @@ from xmlrpc.server import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from bpy.types import AddonPreferences, Operator, Panel
 
-ADDON_ROOT = (__package__ or __name__).split(".")[0]  # "SpeechToBlender"
+ADDON_ROOT = (__package__ or __name__).split(".")[0]  # "Nalana"
 
 # ───────── RPC Server State ─────────
 HOST = "127.0.0.1"
@@ -51,7 +51,7 @@ _LIVE_TIMER = None  # Legacy placeholder (no longer used for Gemini Live)
 _LIVE_PROCESS = None  # subprocess.Popen handle for live_bridge.py (Gemini Live)
 
 # ───────── Preferences (single class) ─────────
-class STB_AddonPreferences(AddonPreferences):
+class NALANA_AddonPreferences(AddonPreferences):
     bl_idname = ADDON_ROOT
 
     meshy_api_key: StringProperty(
@@ -236,12 +236,12 @@ class STB_AddonPreferences(AddonPreferences):
         box.label(text="Python Dependencies", icon="PACKAGE")
         col = box.column(align=True)
         col.label(text="Click below to install required Python packages into Blender's Python:", icon="INFO")
-        col.operator("stb.install_dependencies", icon="IMPORT")
+        col.operator("nalana.install_dependencies", icon="IMPORT")
         col.separator()
 
 # ───────── Minimal operator and panels so UI never crashes ─────────
-class STB_OT_InstallDependencies(bpy.types.Operator):
-    bl_idname = "stb.install_dependencies"
+class NALANA_OT_InstallDependencies(bpy.types.Operator):
+    bl_idname = "nalana.install_dependencies"
     bl_label = "Install Python Dependencies"
     bl_description = "Install required packages (openai, google-genai, etc.) from requirements.txt into Blender's Python"
 
@@ -260,7 +260,7 @@ class STB_OT_InstallDependencies(bpy.types.Operator):
         try:
             # Install packages into Blender's Python
             self.report({'INFO'}, "Installing dependencies... Check system console for details.")
-            print(f"[SpeechToBlender] Installing dependencies from {req_file} using {sys.executable}")
+            print(f"[Nalana] Installing dependencies from {req_file} using {sys.executable}")
             
             # Using call instead of run to not freeze Blender completely if it takes long,
             # but run is safer for error handling. We'll use run with a timeout.
@@ -273,30 +273,30 @@ class STB_OT_InstallDependencies(bpy.types.Operator):
             
             if result.returncode == 0:
                 self.report({'INFO'}, "Successfully installed dependencies! Please restart Blender.")
-                print(f"[SpeechToBlender] ✅ Dependencies installed successfully.\n{result.stdout}")
+                print(f"[Nalana] ✅ Dependencies installed successfully.\n{result.stdout}")
                 return {'FINISHED'}
             else:
                 self.report({'ERROR'}, "Failed to install dependencies. Check console.")
-                print(f"[SpeechToBlender] ❌ Failed to install dependencies.\n{result.stderr}")
+                print(f"[Nalana] ❌ Failed to install dependencies.\n{result.stderr}")
                 return {'CANCELLED'}
         except Exception as e:
             self.report({'ERROR'}, f"Error installing dependencies: {e}")
-            print(f"[SpeechToBlender] ❌ Error installing dependencies: {e}")
+            print(f"[Nalana] ❌ Error installing dependencies: {e}")
             return {'CANCELLED'}
 
 
-class STB_OT_MeshyGenerate(bpy.types.Operator):
-    bl_idname = "stb.meshy_generate"
+class NALANA_OT_MeshyGenerate(bpy.types.Operator):
+    bl_idname = "nalana.meshy_generate"
     bl_label = "Generate with Meshy"
 
     def execute(self, context):
         try:
-            from .stb_core.providers import meshy as meshy_provider
+            from .nalana_core.providers import meshy as meshy_provider
         except Exception as e:
             self.report({'ERROR'}, f"core import failed: {e}")
             return {'CANCELLED'}
 
-        prompt = context.window_manager.stb_meshy_prompt or "simple low-poly test object"
+        prompt = context.window_manager.nalana_meshy_prompt or "simple low-poly test object"
 
         # 👇 get prefs safely
         try:
@@ -322,23 +322,23 @@ class STB_OT_MeshyGenerate(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class STB_PT_MeshyTools(Panel):
+class NALANA_PT_MeshyTools(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "STB"
+    bl_category = "Nalana"
     bl_label = "Meshy Tools"
 
     def draw(self, context):
         layout = self.layout
         wm = context.window_manager
-        layout.prop(wm, "stb_meshy_prompt", text="Prompt")
-        layout.operator("stb.meshy_generate", icon="MESH_CUBE", text="Generate")
+        layout.prop(wm, "nalana_meshy_prompt", text="Prompt")
+        layout.operator("nalana.meshy_generate", icon="MESH_CUBE", text="Generate")
 
 
-class STB_PT_MeshyStatus(Panel):
+class NALANA_PT_MeshyStatus(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "STB"
+    bl_category = "Nalana"
     bl_label = "Meshy Status"
     bl_parent_id = ""
     bl_options = {'DEFAULT_CLOSED'}
@@ -346,7 +346,7 @@ class STB_PT_MeshyStatus(Panel):
     def draw(self, context):
         layout = self.layout
         try:
-            from .stb_core.providers import meshy as meshy_provider
+            from .nalana_core.providers import meshy as meshy_provider
             status = meshy_provider.get_meshy_status()
         except Exception as e:
             status = f"core not ready: {e}"
@@ -410,10 +410,10 @@ def _ensure_import_addon_for_operator(op_fullname: str) -> bool:
             return True
         try:
             bpy.ops.preferences.addon_enable(module=mod)
-            print(f"[SpeechToBlender] Auto-enabled add-on: {mod} for {op_fullname}")
+            print(f"[Nalana] Auto-enabled add-on: {mod} for {op_fullname}")
             return True
         except Exception as e:
-            print(f"[SpeechToBlender] Failed to enable add-on {mod}: {e}")
+            print(f"[Nalana] Failed to enable add-on {mod}: {e}")
             return False
     except Exception:
         return False
@@ -423,7 +423,7 @@ def _safe_call_operator(op_fullname: str, kwargs: dict):
     """Safely call a Blender operator. Returns (success, message)."""
     ok, reason = _is_safe_op(op_fullname)
     if not ok:
-        print(f"[SpeechToBlender] Safety blocked: {op_fullname} - {reason}")
+        print(f"[Nalana] Safety blocked: {op_fullname} - {reason}")
         return False, reason
     try:
         cat, name = op_fullname.split(".", 1)
@@ -439,7 +439,7 @@ def _safe_call_operator(op_fullname: str, kwargs: dict):
                 return False, f"File not found: {filepath}"
             # Normalize path
             kwargs["filepath"] = os.path.normpath(os.path.abspath(filepath))
-            print(f"[SpeechToBlender] Importing file: {kwargs['filepath']}")
+            print(f"[Nalana] Importing file: {kwargs['filepath']}")
         
         result = fn(**(kwargs or {}))
         if result and isinstance(result, set):
@@ -461,20 +461,20 @@ def _safe_call_operator(op_fullname: str, kwargs: dict):
                 return True, "OK"
             except Exception as e2:
                 error_msg = f"Operator not found after enabling add-on: {op_fullname} ({e2})"
-                print(f"[SpeechToBlender] {error_msg}")
+                print(f"[Nalana] {error_msg}")
                 return False, error_msg
         error_msg = f"Operator not found: {op_fullname} ({e})"
-        print(f"[SpeechToBlender] {error_msg}")
+        print(f"[Nalana] {error_msg}")
         return False, error_msg
     except TypeError as e:
         error_msg = f"Bad arguments for {op_fullname}: {e}"
-        print(f"[SpeechToBlender] {error_msg}")
+        print(f"[Nalana] {error_msg}")
         import traceback
         traceback.print_exc()
         return False, error_msg
     except Exception as e:
         error_msg = f"Operator error {op_fullname}: {e}"
-        print(f"[SpeechToBlender] {error_msg}")
+        print(f"[Nalana] {error_msg}")
         import traceback
         traceback.print_exc()
         return False, error_msg
@@ -495,7 +495,7 @@ def _rpc_execute(cmd_dict):
                 # New format: use command_exec
                 try:
                     from .addon.command_exec import execute_command
-                    from .stb_core.config import load_config
+                    from .nalana_core.config import load_config
                     cfg = load_config()
                     return execute_command(cmd_dict, cfg)
                 except Exception as e:
@@ -557,7 +557,7 @@ def _server_loop():
             
             def enqueue_op_safe(op_name="wm.redraw_timer", kwargs=None):
                 kwargs = kwargs or {}
-                print(f"[SpeechToBlender] RPC enqueue: {op_name} {kwargs}")
+                print(f"[Nalana] RPC enqueue: {op_name} {kwargs}")
                 _TASKQ.put(("OP_SAFE", op_name, kwargs))
                 return "enqueued"
             
@@ -569,7 +569,7 @@ def _server_loop():
                         provider = getattr(addon_prefs, "ai_model_provider", "openai-gpt-5") or "openai-gpt-5"
                         return provider
                 except Exception as e:
-                    print(f"[SpeechToBlender] Error getting AI model provider: {e}")
+                    print(f"[Nalana] Error getting AI model provider: {e}")
                 return "openai-gpt-5"  # Default fallback
             
             def get_openai_api_key():
@@ -587,16 +587,16 @@ def _server_loop():
                             # Combine the parts
                             key = (part1 + part2).strip()
                             if key:
-                                print(f"[SpeechToBlender] Retrieved API key from split fields: part1={len(part1)}, part2={len(part2)}, total={len(key)} chars")
+                                print(f"[Nalana] Retrieved API key from split fields: part1={len(part1)}, part2={len(part2)}, total={len(key)} chars")
                         else:
                             # Fall back to legacy single field
                             key = getattr(addon_prefs, "openai_api_key", "") or ""
                             if key:
-                                print(f"[SpeechToBlender] Retrieved API key from legacy field: {len(key)} chars")
+                                print(f"[Nalana] Retrieved API key from legacy field: {len(key)} chars")
                         
                         if key:
                             original_len = len(key)
-                            print(f"[SpeechToBlender] Retrieved API key from preferences: {original_len} chars")
+                            print(f"[Nalana] Retrieved API key from preferences: {original_len} chars")
                             
                             # Only remove actual whitespace (spaces, newlines, tabs) - don't remove all whitespace
                             # This preserves the key structure
@@ -612,38 +612,38 @@ def _server_loop():
                             
                             final_len = len(key)
                             if original_len != final_len:
-                                print(f"[SpeechToBlender] Cleaned key: {original_len} -> {final_len} chars (removed whitespace)")
+                                print(f"[Nalana] Cleaned key: {original_len} -> {final_len} chars (removed whitespace)")
                             
                             # Check for hidden characters (non-printable)
                             non_printable = [c for c in key if not c.isprintable()]
                             if non_printable:
-                                print(f"[SpeechToBlender] ⚠️ WARNING: Key contains {len(non_printable)} non-printable characters!")
+                                print(f"[Nalana] ⚠️ WARNING: Key contains {len(non_printable)} non-printable characters!")
                                 # Remove non-printable characters
                                 key = ''.join(c for c in key if c.isprintable())
-                                print(f"[SpeechToBlender] Cleaned key length after removing non-printable: {len(key)}")
+                                print(f"[Nalana] Cleaned key length after removing non-printable: {len(key)}")
                             
                             # Show raw representation for debugging
-                            print(f"[SpeechToBlender] Final key length: {len(key)} chars")
+                            print(f"[Nalana] Final key length: {len(key)} chars")
                             if len(key) > 60:
-                                print(f"[SpeechToBlender] Key preview (first 30): {repr(key[:30])}")
-                                print(f"[SpeechToBlender] Key preview (last 30): {repr(key[-30:])}")
+                                print(f"[Nalana] Key preview (first 30): {repr(key[:30])}")
+                                print(f"[Nalana] Key preview (last 30): {repr(key[-30:])}")
                                 # Warn if key seems shorter than expected for project keys
                                 if len(key) < 150:
-                                    print(f"[SpeechToBlender] ⚠️ Key length ({len(key)} chars) is shorter than expected for project keys (~150-170 chars)")
-                                    print(f"[SpeechToBlender] This suggests the key may have been truncated when stored in Blender preferences.")
-                                    print(f"[SpeechToBlender] Please try clearing and re-pasting the full key.")
+                                    print(f"[Nalana] ⚠️ Key length ({len(key)} chars) is shorter than expected for project keys (~150-170 chars)")
+                                    print(f"[Nalana] This suggests the key may have been truncated when stored in Blender preferences.")
+                                    print(f"[Nalana] Please try clearing and re-pasting the full key.")
                             
                             if key:
                                 # Basic validation: OpenAI keys start with "sk-" or "sk-proj-"
                                 if key.startswith("sk-") or key.startswith("sk-proj-"):
                                     return key
                                 else:
-                                    print(f"[SpeechToBlender] ⚠️ OpenAI API key format looks invalid (should start with 'sk-' or 'sk-proj-')")
+                                    print(f"[Nalana] ⚠️ OpenAI API key format looks invalid (should start with 'sk-' or 'sk-proj-')")
                                     return key  # Still return it, let OpenAI API validate
                     else:
-                        print(f"[SpeechToBlender] ⚠️ Add-on '{ADDON_ROOT}' not found in preferences")
+                        print(f"[Nalana] ⚠️ Add-on '{ADDON_ROOT}' not found in preferences")
                 except Exception as e:
-                    print(f"[SpeechToBlender] Error getting OpenAI API key: {e}")
+                    print(f"[Nalana] Error getting OpenAI API key: {e}")
                     import traceback
                     traceback.print_exc()
                 return ""
@@ -656,10 +656,10 @@ def _server_loop():
                         key = getattr(addon_prefs, "gemini_api_key", "") or ""
                         if key:
                             key = key.strip()
-                            print(f"[SpeechToBlender] Retrieved Gemini API key: {len(key)} chars")
+                            print(f"[Nalana] Retrieved Gemini API key: {len(key)} chars")
                         return key
                 except Exception as e:
-                    print(f"[SpeechToBlender] Error getting Gemini API key: {e}")
+                    print(f"[Nalana] Error getting Gemini API key: {e}")
                 return ""
             
             def start_voice_command():
@@ -687,7 +687,7 @@ def _server_loop():
                         "enable_quality_assessment": enable_quality,
                     }
                 except Exception as e:
-                    print(f"[SpeechToBlender] Error getting modeling state: {e}")
+                    print(f"[Nalana] Error getting modeling state: {e}")
                     return {"enabled": True, "target_object": "", "use_react": False, "enable_quality_assessment": False}
             
             def get_modeling_context():
@@ -752,7 +752,7 @@ def _server_loop():
                         "scene_info": scene_info,
                     }
                 except Exception as e:
-                    print(f"[SpeechToBlender] Error getting modeling context: {e}")
+                    print(f"[Nalana] Error getting modeling context: {e}")
                     import traceback
                     traceback.print_exc()
                     return {"error": str(e)}
@@ -936,7 +936,7 @@ def _server_loop():
                         "object_mode": obj.mode,
                     }
                 except Exception as e:
-                    print(f"[SpeechToBlender] Error analyzing mesh: {e}")
+                    print(f"[Nalana] Error analyzing mesh: {e}")
                     import traceback
                     traceback.print_exc()
                     return {"error": str(e)}
@@ -950,7 +950,7 @@ def _server_loop():
                     import os
                     import sys
                     
-                    print("[SpeechToBlender] 📸 Starting viewport screenshot capture (screen capture method)...")
+                    print("[Nalana] 📸 Starting viewport screenshot capture (screen capture method)...")
                     
                     # Ensure viewport is in Material Preview mode so materials are visible
                     try:
@@ -968,10 +968,10 @@ def _server_loop():
                                     if hasattr(space, 'shading'):
                                         old_mode = space.shading.type
                                         space.shading.type = 'MATERIAL'
-                                        print(f"[SpeechToBlender] 📸 Set viewport shading to Material Preview (was: {old_mode})")
+                                        print(f"[Nalana] 📸 Set viewport shading to Material Preview (was: {old_mode})")
                                     break
                     except Exception as e:
-                        print(f"[SpeechToBlender] ⚠️ Could not set viewport shading mode: {e}")
+                        print(f"[Nalana] ⚠️ Could not set viewport shading mode: {e}")
                     
                     screenshot_data = None
                     
@@ -995,14 +995,14 @@ def _server_loop():
                             try:
                                 # Use OpenGL render with context override
                                 bpy.ops.render.opengl(override, write_still=False)
-                                print("[SpeechToBlender] ✅ Used render.opengl with context override")
+                                print("[Nalana] ✅ Used render.opengl with context override")
                             except Exception as e:
-                                print(f"[SpeechToBlender] ⚠️ render.opengl failed: {e}, trying render.render()...")
+                                print(f"[Nalana] ⚠️ render.opengl failed: {e}, trying render.render()...")
                                 # Fall back to regular render
                                 bpy.ops.render.render(override, write_still=False)
                         else:
                             # No 3D viewport found, use regular render
-                            print("[SpeechToBlender] ⚠️ No 3D viewport found, using render.render()...")
+                            print("[Nalana] ⚠️ No 3D viewport found, using render.render()...")
                             bpy.ops.render.render(write_still=False)
                         
                         # Get the rendered image from Render Result
@@ -1010,30 +1010,30 @@ def _server_loop():
                         if not render_result:
                             raise Exception("Could not get Render Result image")
                         
-                        print(f"[SpeechToBlender] ✅ Got Render Result: {render_result.size[0]}x{render_result.size[1]}")
+                        print(f"[Nalana] ✅ Got Render Result: {render_result.size[0]}x{render_result.size[1]}")
                         
                         # Save to temporary file
                         temp_path = tempfile.mktemp(suffix='.png')
                         render_result.save_render(temp_path)
-                        print(f"[SpeechToBlender] 💾 Saved render to temp file: {temp_path}")
+                        print(f"[Nalana] 💾 Saved render to temp file: {temp_path}")
                         
                         # Read and encode as base64
                         with open(temp_path, 'rb') as f:
                             image_data = f.read()
                             screenshot_data = base64.b64encode(image_data).decode('utf-8')
                         
-                        print(f"[SpeechToBlender] ✅ Encoded to base64: {len(image_data)} bytes raw, {len(screenshot_data)} chars base64")
+                        print(f"[Nalana] ✅ Encoded to base64: {len(image_data)} bytes raw, {len(screenshot_data)} chars base64")
                         
                         # Cleanup temp file
                         try:
                             os.remove(temp_path)
-                            print(f"[SpeechToBlender] 🗑️ Cleaned up temp file")
+                            print(f"[Nalana] 🗑️ Cleaned up temp file")
                         except Exception:
                             pass
                         
                         return {"image_base64": screenshot_data, "format": "png"}
                     except Exception as e:
-                        print(f"[SpeechToBlender] ⚠️ Blender render method failed: {e}, falling back to screen capture...")
+                        print(f"[Nalana] ⚠️ Blender render method failed: {e}, falling back to screen capture...")
                         import traceback
                         traceback.print_exc()
                     
@@ -1041,7 +1041,7 @@ def _server_loop():
                     # Try using PIL/Pillow with screen capture (if available)
                     try:
                         from PIL import ImageGrab
-                        print("[SpeechToBlender] 📸 Attempting PIL.ImageGrab screen capture (entire screen)...")
+                        print("[Nalana] 📸 Attempting PIL.ImageGrab screen capture (entire screen)...")
                         # Capture entire screen
                         screenshot = ImageGrab.grab()
                         temp_path = tempfile.mktemp(suffix='.png')
@@ -1052,19 +1052,19 @@ def _server_loop():
                             screenshot_data = base64.b64encode(image_data).decode('utf-8')
                         
                         os.remove(temp_path)
-                        print(f"[SpeechToBlender] ⚠️ Captured entire screen using PIL.ImageGrab: {len(image_data)} bytes raw, {len(screenshot_data)} chars base64")
+                        print(f"[Nalana] ⚠️ Captured entire screen using PIL.ImageGrab: {len(image_data)} bytes raw, {len(screenshot_data)} chars base64")
                         return {"image_base64": screenshot_data, "format": "png"}
                     except ImportError as e:
-                        print(f"[SpeechToBlender] ⚠️ PIL/Pillow not available: {e}, trying mss...")
+                        print(f"[Nalana] ⚠️ PIL/Pillow not available: {e}, trying mss...")
                     except Exception as e:
-                        print(f"[SpeechToBlender] ⚠️ PIL.ImageGrab failed: {e}, trying mss...")
+                        print(f"[Nalana] ⚠️ PIL.ImageGrab failed: {e}, trying mss...")
                         import traceback
                         traceback.print_exc()
                     
                     # Method 3: Try using mss (if available) - faster and more reliable
                     try:
                         import mss
-                        print("[SpeechToBlender] 📸 Attempting mss screen capture (entire screen)...")
+                        print("[Nalana] 📸 Attempting mss screen capture (entire screen)...")
                         with mss.mss() as sct:
                             # Capture entire screen
                             screenshot = sct.grab(sct.monitors[0])  # Primary monitor
@@ -1076,12 +1076,12 @@ def _server_loop():
                                 screenshot_data = base64.b64encode(image_data).decode('utf-8')
                             
                             os.remove(temp_path)
-                            print(f"[SpeechToBlender] ⚠️ Captured entire screen using mss: {len(image_data)} bytes raw, {len(screenshot_data)} chars base64")
+                            print(f"[Nalana] ⚠️ Captured entire screen using mss: {len(image_data)} bytes raw, {len(screenshot_data)} chars base64")
                             return {"image_base64": screenshot_data, "format": "png"}
                     except ImportError as e:
-                        print(f"[SpeechToBlender] ⚠️ mss not available: {e}")
+                        print(f"[Nalana] ⚠️ mss not available: {e}")
                     except Exception as e:
-                        print(f"[SpeechToBlender] ⚠️ mss failed: {e}")
+                        print(f"[Nalana] ⚠️ mss failed: {e}")
                         import traceback
                         traceback.print_exc()
                     
@@ -1089,7 +1089,7 @@ def _server_loop():
                     return {"error": f"All screenshot methods failed. Install Pillow (pip install Pillow) or mss (pip install mss) for screen capture."}
                     
                 except Exception as e:
-                    print(f"[SpeechToBlender] ❌ Error capturing screenshot: {e}")
+                    print(f"[Nalana] ❌ Error capturing screenshot: {e}")
                     import traceback
                     traceback.print_exc()
                     return {"error": str(e)}
@@ -1104,10 +1104,10 @@ def _server_loop():
                     
                     old_name = obj.name
                     obj.name = new_name
-                    print(f"[SpeechToBlender] Renamed object: {old_name} -> {new_name}")
+                    print(f"[Nalana] Renamed object: {old_name} -> {new_name}")
                     return {"ok": True, "old_name": old_name, "new_name": new_name}
                 except Exception as e:
-                    print(f"[SpeechToBlender] Error renaming object: {e}")
+                    print(f"[Nalana] Error renaming object: {e}")
                     import traceback
                     traceback.print_exc()
                     return {"ok": False, "error": str(e)}
@@ -1315,7 +1315,7 @@ def _server_loop():
                     
                     return assessment
                 except Exception as e:
-                    print(f"[SpeechToBlender] Error assessing object quality: {e}")
+                    print(f"[Nalana] Error assessing object quality: {e}")
                     import traceback
                     traceback.print_exc()
                     return {"error": str(e)}
@@ -1550,7 +1550,7 @@ def _server_loop():
                         "categorized_parts": categorized_parts,
                     }
                 except Exception as e:
-                    print(f"[SpeechToBlender] Error analyzing scene: {e}")
+                    print(f"[Nalana] Error analyzing scene: {e}")
                     import traceback
                     traceback.print_exc()
                     return {"error": str(e)}
@@ -1689,19 +1689,19 @@ def _server_loop():
             server.register_function(set_voice_listening_state, "set_voice_listening_state")
             
             _SERVER_RUNNING = True
-            print(f"[SpeechToBlender] XML-RPC listening on http://{HOST}:{PORT}/RPC2")
+            print(f"[Nalana] XML-RPC listening on http://{HOST}:{PORT}/RPC2")
             
             # Main server loop
             while _SERVER_RUNNING:
                 server.handle_request()
                 
     except OSError as e:
-        print(f"[SpeechToBlender] Server bind error on {HOST}:{PORT}: {e}")
+        print(f"[Nalana] Server bind error on {HOST}:{PORT}: {e}")
     except Exception as e:
-        print(f"[SpeechToBlender] Server error: {e}")
+        print(f"[Nalana] Server error: {e}")
     finally:
         _SERVER_RUNNING = False
-        print("[SpeechToBlender] Server loop ended")
+        print("[Nalana] Server loop ended")
 
 
 def _port_in_use(host, port):
@@ -1715,10 +1715,10 @@ def _start_server_thread():
     """Start the RPC server in a background thread."""
     global _SERVER_THREAD, _SERVER_RUNNING
     if _SERVER_RUNNING:
-        print("[SpeechToBlender] Server already running")
+        print("[Nalana] Server already running")
         return True
     if _port_in_use(HOST, PORT):
-        print(f"[SpeechToBlender] Port {PORT} already in use; not starting.")
+        print(f"[Nalana] Port {PORT} already in use; not starting.")
         return False
     _SERVER_THREAD = threading.Thread(target=_server_loop, daemon=True)
     _SERVER_THREAD.start()
@@ -1742,7 +1742,7 @@ def _stop_server_thread():
             pass
     except Exception:
         pass
-    print("[SpeechToBlender] Requested server stop")
+    print("[Nalana] Requested server stop")
     # Stop voice process when server stops
     _stop_voice_process()
 
@@ -1755,9 +1755,9 @@ def _drain_task_queue():
         if _NEED_UNDO_PUSH:
             try:
                 bpy.ops.ed.undo_push(message="Voice Command")
-                print("[SpeechToBlender] Pushed undo point for voice command")
+                print("[Nalana] Pushed undo point for voice command")
             except Exception as e:
-                print(f"[SpeechToBlender] Failed to push undo: {e}")
+                print(f"[Nalana] Failed to push undo: {e}")
             _NEED_UNDO_PUSH = False
         
         while not _TASKQ.empty():
@@ -1768,60 +1768,60 @@ def _drain_task_queue():
                 # Special case: handle execute (Python code execution)
                 if name == "execute" and "code" in kwargs:
                     code = kwargs.get("code", "")
-                    print(f"[SpeechToBlender] Executing Python code...")
+                    print(f"[Nalana] Executing Python code...")
                     try:
                         exec(code, {"__builtins__": __builtins__, "bpy": bpy})
-                        print(f"[SpeechToBlender] ✅ Python code executed successfully")
+                        print(f"[Nalana] ✅ Python code executed successfully")
                     except Exception as e:
                         error_msg = str(e)
                         import traceback
                         tb = traceback.format_exc()
-                        print(f"[SpeechToBlender] ❌ Python execution error: {error_msg}")
-                        print(f"[SpeechToBlender] Traceback: {tb}")
+                        print(f"[Nalana] ❌ Python execution error: {error_msg}")
+                        print(f"[Nalana] Traceback: {tb}")
                 else:
-                    print(f"[SpeechToBlender] Executing: {name} with kwargs: {kwargs}")
+                    print(f"[Nalana] Executing: {name} with kwargs: {kwargs}")
                     ok, reason = _safe_call_operator(name, kwargs)
                     if ok:
-                        print(f"[SpeechToBlender] ✅ Success: {name}")
+                        print(f"[Nalana] ✅ Success: {name}")
                     else:
-                        print(f"[SpeechToBlender] ❌ Failed: {name} - {reason}")
+                        print(f"[Nalana] ❌ Failed: {name} - {reason}")
                 try:
                     bpy.ops.wm.redraw_timer(type="DRAW_WIN", iterations=1)
                 except Exception:
                     pass
             elif kind == "EXEC_PYTHON":
                 _, code = msg
-                print(f"[SpeechToBlender] Executing Python code...")
+                print(f"[Nalana] Executing Python code...")
                 try:
                     # Execute Python code in Blender's context
                     exec(code, {"__builtins__": __builtins__, "bpy": bpy})
-                    print(f"[SpeechToBlender] ✅ Python code executed successfully")
+                    print(f"[Nalana] ✅ Python code executed successfully")
                 except Exception as e:
                     error_msg = str(e)
                     import traceback
                     tb = traceback.format_exc()
-                    print(f"[SpeechToBlender] ❌ Python execution error: {error_msg}")
-                    print(f"[SpeechToBlender] Traceback: {tb}")
+                    print(f"[Nalana] ❌ Python execution error: {error_msg}")
+                    print(f"[Nalana] Traceback: {tb}")
                 try:
                     bpy.ops.wm.redraw_timer(type="DRAW_WIN", iterations=1)
                 except Exception:
                     pass
             elif kind == "CAPTURE_SCREENSHOT":
                 _, capture_func = msg
-                print(f"[SpeechToBlender] Executing screenshot capture on main thread...")
+                print(f"[Nalana] Executing screenshot capture on main thread...")
                 try:
                     capture_func()
-                    print(f"[SpeechToBlender] ✅ Screenshot capture completed")
+                    print(f"[Nalana] ✅ Screenshot capture completed")
                 except Exception as e:
                     error_msg = str(e)
                     import traceback
                     tb = traceback.format_exc()
-                    print(f"[SpeechToBlender] ❌ Screenshot capture error: {error_msg}")
-                    print(f"[SpeechToBlender] Traceback: {tb}")
+                    print(f"[Nalana] ❌ Screenshot capture error: {error_msg}")
+                    print(f"[Nalana] Traceback: {tb}")
     except queue.Empty:
         pass
     except Exception as e:
-        print(f"[SpeechToBlender] Error draining task queue: {e}")
+        print(f"[Nalana] Error draining task queue: {e}")
         import traceback
         traceback.print_exc()
     return 0.5 if _SERVER_RUNNING else None
@@ -1893,10 +1893,10 @@ def _execute_predict(payload):
         return
     try:
         exec(code, {"__builtins__": __builtins__, "bpy": bpy})
-        print(f"[SpeechToBlender Live] PREDICT executed: {payload}")
+        print(f"[Nalana Live] PREDICT executed: {payload}")
     except Exception as e:
         import traceback
-        print(f"[SpeechToBlender Live] PREDICT failed ({payload}): {e}")
+        print(f"[Nalana Live] PREDICT failed ({payload}): {e}")
         traceback.print_exc()
 
 
@@ -1916,26 +1916,26 @@ def _drain_live_action_queue():
             msg_type = item.get("type")
             payload = item.get("payload", "")
             if msg_type == "ERROR":
-                print(f"[SpeechToBlender Live] ERROR: {payload}")
+                print(f"[Nalana Live] ERROR: {payload}")
             elif msg_type == "CODE":
                 blocked = False
                 for forbidden in _LIVE_CODE_BLACKLIST:
                     if forbidden in payload:
-                        print(f"[SpeechToBlender Live] BLOCKED (forbidden: {forbidden!r})")
+                        print(f"[Nalana Live] BLOCKED (forbidden: {forbidden!r})")
                         blocked = True
                         break
                 if not blocked:
                     try:
                         exec(payload, {"__builtins__": __builtins__, "bpy": bpy})
-                        print("[SpeechToBlender Live] CODE executed")
+                        print("[Nalana Live] CODE executed")
                     except Exception as e:
                         import traceback
-                        print(f"[SpeechToBlender Live] CODE exec failed: {e}")
+                        print(f"[Nalana Live] CODE exec failed: {e}")
                         traceback.print_exc()
             elif msg_type == "PREDICT":
                 _execute_predict(payload)
     except Exception as e:
-        print(f"[SpeechToBlender] Error draining live queue: {e}")
+        print(f"[Nalana] Error draining live queue: {e}")
         import traceback
         traceback.print_exc()
     return 0.05 if _LIVE_SESSION_RUNNING else None
@@ -1956,7 +1956,7 @@ def _get_voice_script_path():
 def _bundled_python_exe():
     """Get path to bundled Python if available."""
     addon_dir = os.path.dirname(os.path.abspath(__file__))
-    bundled = os.path.join(addon_dir, "stb_runtime", "python", "python.exe")
+    bundled = os.path.join(addon_dir, "nalana_runtime", "python", "python.exe")
     if os.path.isfile(bundled):
         return bundled
     return None
@@ -1984,21 +1984,21 @@ def _ensure_dependencies_installed():
         if not os.path.isfile(req_file):
             return False
             
-        print("[SpeechToBlender] Missing dependencies detected. Installing...")
+        print("[Nalana] Missing dependencies detected. Installing...")
         result = subprocess.run(
             [py_exe, "-m", "pip", "install", "-r", req_file, "--quiet", "--disable-pip-version-check"],
             capture_output=True,
             timeout=300
         )
         if result.returncode == 0:
-            print("[SpeechToBlender] ✅ Dependencies installed successfully")
+            print("[Nalana] ✅ Dependencies installed successfully")
             return True
         else:
             error_msg = result.stderr.decode("utf-8", errors="ignore") if result.stderr else "Unknown error"
-            print(f"[SpeechToBlender] ⚠️ Failed to install dependencies: {error_msg[:200]}")
+            print(f"[Nalana] ⚠️ Failed to install dependencies: {error_msg[:200]}")
             return False
     except Exception as e:
-        print(f"[SpeechToBlender] ⚠️ Error checking/installing dependencies: {e}")
+        print(f"[Nalana] ⚠️ Error checking/installing dependencies: {e}")
         return False
 
 
@@ -2047,22 +2047,22 @@ def _start_voice_process():
     global _VOICE_POPEN, _VOICE_RUNNING
     
     if _voice_is_running():
-        print("[SpeechToBlender] Voice process already running")
+        print("[Nalana] Voice process already running")
         return True
     
     voice_path = _get_voice_script_path()
     if not os.path.isfile(voice_path):
-        print(f"[SpeechToBlender] Voice script not found: {voice_path}")
+        print(f"[Nalana] Voice script not found: {voice_path}")
         return False
     
     python_exe = _resolve_python_exe()
     if not python_exe:
-        print("[SpeechToBlender] Could not resolve Python executable")
+        print("[Nalana] Could not resolve Python executable")
         return False
     
     try:
-        print(f"[SpeechToBlender] Launching voice script: {voice_path}")
-        print(f"[SpeechToBlender] Using Python: {python_exe}")
+        print(f"[Nalana] Launching voice script: {voice_path}")
+        print(f"[Nalana] Using Python: {python_exe}")
         
         env = os.environ.copy()
         # Forward OPENAI_API_KEY if present
@@ -2071,19 +2071,19 @@ def _start_voice_process():
         
         # Try to set bundled whisper CLI if available
         addon_dir = os.path.dirname(os.path.abspath(__file__))
-        bundled_cli = os.path.join(addon_dir, "stb_runtime", "whisper", "whisper-cli.bat")
+        bundled_cli = os.path.join(addon_dir, "nalana_runtime", "whisper", "whisper-cli.bat")
         if os.path.isfile(bundled_cli):
             env["WHISPER_CLI"] = bundled_cli
         
         # Let batch wrappers know which python to run
-        env["STB_PYTHON_EXE"] = python_exe
+        env["NALANA_PYTHON_EXE"] = python_exe
         
         # Create a batch file wrapper that keeps console open
         if os.name == "nt":
             # Create temp batch file
             import tempfile
             batch_dir = tempfile.gettempdir()
-            batch_file = os.path.join(batch_dir, "stb_voice_launcher.bat")
+            batch_file = os.path.join(batch_dir, "nalana_voice_launcher.bat")
             
             # Write batch file that runs Python and pauses on error
             with open(batch_file, 'w') as f:
@@ -2111,17 +2111,17 @@ def _start_voice_process():
             )
         
         _VOICE_RUNNING = True
-        print("[SpeechToBlender] Voice process started")
-        print("[SpeechToBlender] A console window should have opened - check it for output/errors")
+        print("[Nalana] Voice process started")
+        print("[Nalana] A console window should have opened - check it for output/errors")
         
         # Wait a moment and check if it's still running
         time.sleep(1.0)  # Give it more time to start
         if _VOICE_POPEN.poll() is not None:
             # Process exited immediately
-            print(f"[SpeechToBlender] ⚠️ Voice process launcher exited immediately with code: {_VOICE_POPEN.returncode}")
-            print(f"[SpeechToBlender] Check the console window that should have opened")
-            print(f"[SpeechToBlender] Or run manually to see errors:")
-            print(f"[SpeechToBlender]   {python_exe} {voice_path}")
+            print(f"[Nalana] ⚠️ Voice process launcher exited immediately with code: {_VOICE_POPEN.returncode}")
+            print(f"[Nalana] Check the console window that should have opened")
+            print(f"[Nalana] Or run manually to see errors:")
+            print(f"[Nalana]   {python_exe} {voice_path}")
             _VOICE_POPEN = None
             _VOICE_RUNNING = False
             return False
@@ -2129,10 +2129,10 @@ def _start_voice_process():
         return True
         
     except FileNotFoundError as e:
-        print(f"[SpeechToBlender] Python executable not found: {python_exe} - {e}")
+        print(f"[Nalana] Python executable not found: {python_exe} - {e}")
         return False
     except Exception as e:
-        print(f"[SpeechToBlender] Failed to start voice process: {e}")
+        print(f"[Nalana] Failed to start voice process: {e}")
         return False
 
 
@@ -2156,19 +2156,19 @@ def _stop_voice_process():
     
     _VOICE_POPEN = None
     _VOICE_RUNNING = False
-    print("[SpeechToBlender] Voice process stopped")
+    print("[Nalana] Voice process stopped")
 
 
 # ───────── RPC Bridge Operators ─────────
-class STB_OT_RPCStart(bpy.types.Operator):
-    bl_idname = "stb.rpc_start"
+class NALANA_OT_RPCStart(bpy.types.Operator):
+    bl_idname = "nalana.rpc_start"
     bl_label = "Start RPC"
 
     def execute(self, context):
         global _VOICE_LISTENING_ENABLED
         ok = _start_server_thread()
         if ok:
-            context.window_manager.stb_rpc_server_running = True
+            context.window_manager.nalana_rpc_server_running = True
             _VOICE_LISTENING_ENABLED = True  # Enable listening when RPC starts
             bpy.app.timers.register(_drain_task_queue, first_interval=0.3)
             # Automatically start voice script
@@ -2181,20 +2181,20 @@ class STB_OT_RPCStart(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class STB_OT_RPCStop(bpy.types.Operator):
-    bl_idname = "stb.rpc_stop"
+class NALANA_OT_RPCStop(bpy.types.Operator):
+    bl_idname = "nalana.rpc_stop"
     bl_label = "Stop RPC"
 
     def execute(self, context):
         _stop_server_thread()
-        context.window_manager.stb_rpc_server_running = False
+        context.window_manager.nalana_rpc_server_running = False
         self.report({'INFO'}, "RPC server stopping…")
         return {'FINISHED'}
 
 
 # ───────── Live Session (Phase 7) ─────────
-class STB_OT_LiveStart(bpy.types.Operator):
-    bl_idname = "stb.live_start"
+class NALANA_OT_LiveStart(bpy.types.Operator):
+    bl_idname = "nalana.live_start"
     bl_label = "Start Live Session"
     bl_description = "Start Gemini Live: stream mic to Gemini, execute code in Blender in real time (via bundled runtime)"
 
@@ -2215,10 +2215,10 @@ class STB_OT_LiveStart(bpy.types.Operator):
             return {'CANCELLED'}
 
         # Ensure RPC server is running (but do NOT start the classic voice script)
-        if not getattr(context.window_manager, "stb_rpc_server_running", False):
+        if not getattr(context.window_manager, "nalana_rpc_server_running", False):
             ok = _start_server_thread()
             if ok:
-                context.window_manager.stb_rpc_server_running = True
+                context.window_manager.nalana_rpc_server_running = True
                 bpy.app.timers.register(_drain_task_queue, first_interval=0.3)
             else:
                 self.report({'ERROR'}, f"Couldn't start RPC server (port {PORT} in use?)")
@@ -2241,26 +2241,26 @@ class STB_OT_LiveStart(bpy.types.Operator):
 
         # Launch Live runner subprocess with API key and context in env
         env = os.environ.copy()
-        env["STB_GEMINI_API_KEY"] = api_key
-        env["STB_LIVE_CONTEXT"] = context_str
-        env.setdefault("STB_RPC_URL", f"http://{HOST}:{PORT}/RPC2")
+        env["NALANA_GEMINI_API_KEY"] = api_key
+        env["NALANA_LIVE_CONTEXT"] = context_str
+        env.setdefault("NALANA_RPC_URL", f"http://{HOST}:{PORT}/RPC2")
 
         try:
-            print(f"[SpeechToBlender] Launching Live runner: {live_script}")
-            print(f"[SpeechToBlender] Using bundled Python: {python_exe}")
+            print(f"[Nalana] Launching Live runner: {live_script}")
+            print(f"[Nalana] Using bundled Python: {python_exe}")
             
             # Create a batch file wrapper that keeps console open (Windows)
             if os.name == "nt":
                 import tempfile
                 batch_dir = tempfile.gettempdir()
-                batch_file = os.path.join(batch_dir, "stb_live_launcher.bat")
+                batch_file = os.path.join(batch_dir, "nalana_live_launcher.bat")
                 
                 # Write batch file that runs Python and pauses on error
                 with open(batch_file, 'w') as f:
                     f.write(f'@echo off\n')
-                    f.write(f'title SpeechToBlender - Live Runner\n')
+                    f.write(f'title Nalana - Live Runner\n')
                     f.write(f'echo ========================================\n')
-                    f.write(f'echo SpeechToBlender - Gemini Live Runner\n')
+                    f.write(f'echo Nalana - Gemini Live Runner\n')
                     f.write(f'echo ========================================\n')
                     f.write(f'echo.\n')
                     f.write(f'cd /d "{addon_dir or "."}"\n')
@@ -2291,16 +2291,16 @@ class STB_OT_LiveStart(bpy.types.Operator):
             except Exception:
                 pass
             self.report({'INFO'}, "Live session started – check console window for status")
-            print("[SpeechToBlender] Live runner process started")
-            print("[SpeechToBlender] A console window should have opened - check it for output/errors")
+            print("[Nalana] Live runner process started")
+            print("[Nalana] A console window should have opened - check it for output/errors")
             
             # Wait a moment and check if it's still running
             time.sleep(1.0)
             if _LIVE_PROCESS.poll() is not None:
-                print(f"[SpeechToBlender] ⚠️ Live runner exited immediately with code: {_LIVE_PROCESS.returncode}")
-                print(f"[SpeechToBlender] Check the console window that should have opened")
-                print(f"[SpeechToBlender] Or run manually to see errors:")
-                print(f"[SpeechToBlender]   {python_exe} {live_script}")
+                print(f"[Nalana] ⚠️ Live runner exited immediately with code: {_LIVE_PROCESS.returncode}")
+                print(f"[Nalana] Check the console window that should have opened")
+                print(f"[Nalana] Or run manually to see errors:")
+                print(f"[Nalana]   {python_exe} {live_script}")
                 _LIVE_PROCESS = None
                 _LIVE_SESSION_RUNNING = False
                 self.report({'ERROR'}, "Live runner exited immediately - check console window")
@@ -2314,8 +2314,8 @@ class STB_OT_LiveStart(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class STB_OT_LiveStop(bpy.types.Operator):
-    bl_idname = "stb.live_stop"
+class NALANA_OT_LiveStop(bpy.types.Operator):
+    bl_idname = "nalana.live_stop"
     bl_label = "Stop Live Session"
 
     def execute(self, context):
@@ -2335,10 +2335,10 @@ class STB_OT_LiveStop(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class STB_PT_Live(Panel):
+class NALANA_PT_Live(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "STB"
+    bl_category = "Nalana"
     bl_label = "Live (Gemini)"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -2349,17 +2349,17 @@ class STB_PT_Live(Panel):
         layout.label(text="Real-time: mic -> Gemini Live -> Blender", icon="INFO")
         if is_running:
             layout.label(text="Listening…", icon="OUTLINER_OB_SPEAKER")
-            layout.operator("stb.live_stop", icon="PAUSE", text="Stop Live Session")
+            layout.operator("nalana.live_stop", icon="PAUSE", text="Stop Live Session")
         else:
-            layout.operator("stb.live_start", icon="PLAY", text="Start Live Session")
+            layout.operator("nalana.live_start", icon="PLAY", text="Start Live Session")
         box = layout.box()
         box.label(text="RPC vs Live:", icon="QUESTION")
         box.label(text="RPC (classic): turn-based voice script (Whisper + GPT), uses Start RPC", icon="INFO")
         box.label(text="Live (Gemini): streaming mic via bundled runtime, code runs as you speak", icon="INFO")
 
 
-class STB_OT_ToggleVoiceListening(bpy.types.Operator):
-    bl_idname = "stb.toggle_voice_listening"
+class NALANA_OT_ToggleVoiceListening(bpy.types.Operator):
+    bl_idname = "nalana.toggle_voice_listening"
     bl_label = "Toggle Voice Listening"
     bl_description = "Toggle voice listening on/off (Alt+F)"
     bl_options = {'REGISTER'}
@@ -2369,7 +2369,7 @@ class STB_OT_ToggleVoiceListening(bpy.types.Operator):
         _VOICE_LISTENING_ENABLED = not _VOICE_LISTENING_ENABLED
         status = "ON" if _VOICE_LISTENING_ENABLED else "OFF"
         self.report({'INFO'}, f"Voice listening: {status}")
-        print(f"[SpeechToBlender] Voice listening toggled: {status}")
+        print(f"[Nalana] Voice listening toggled: {status}")
         
         # Force UI redraw to show status change immediately
         try:
@@ -2382,10 +2382,10 @@ class STB_OT_ToggleVoiceListening(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class STB_PT_RPCBridge(Panel):
+class NALANA_PT_RPCBridge(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "STB"
+    bl_category = "Nalana"
     bl_label = "RPC Bridge"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -2394,7 +2394,7 @@ class STB_PT_RPCBridge(Panel):
         wm = context.window_manager
         
         # Show status
-        is_running = getattr(wm, "stb_rpc_server_running", False) or _SERVER_RUNNING
+        is_running = getattr(wm, "nalana_rpc_server_running", False) or _SERVER_RUNNING
         voice_running = _voice_is_running()
         
         if is_running:
@@ -2408,16 +2408,16 @@ class STB_PT_RPCBridge(Panel):
                 layout.label(text="🟢 Listening: ON (Alt+F to toggle)", icon="SPEAKER")
             else:
                 layout.label(text="🟡 Listening: OFF (Alt+F to toggle)", icon="SPEAKER")
-            layout.operator("stb.rpc_stop", icon="PAUSE", text="Stop RPC")
+            layout.operator("nalana.rpc_stop", icon="PAUSE", text="Stop RPC")
         else:
             layout.label(text=f"RPC: Stopped", icon="X")
             layout.label(text="Voice: Stopped", icon="X")
-            layout.operator("stb.rpc_start", icon="PLAY", text="Start RPC")
+            layout.operator("nalana.rpc_start", icon="PLAY", text="Start RPC")
 
 
-class STB_OT_MarkLastRunSuccess(bpy.types.Operator):
+class NALANA_OT_MarkLastRunSuccess(bpy.types.Operator):
     """Mark the last run as a confirmed success"""
-    bl_idname = "stb.mark_last_run_success"
+    bl_idname = "nalana.mark_last_run_success"
     bl_label = "Mark Last Run as Success"
     bl_description = "Manually mark the most recent run as a confirmed success"
     
@@ -2475,9 +2475,9 @@ class STB_OT_MarkLastRunSuccess(bpy.types.Operator):
             return {'CANCELLED'}
 
 
-class STB_OT_DeleteRun(bpy.types.Operator):
+class NALANA_OT_DeleteRun(bpy.types.Operator):
     """Delete a run from the success library"""
-    bl_idname = "stb.delete_run"
+    bl_idname = "nalana.delete_run"
     bl_label = "Delete Run"
     bl_description = "Delete a run from the success library (for removing falsely marked successes)"
     bl_options = {'REGISTER', 'UNDO'}
@@ -2507,9 +2507,9 @@ class STB_OT_DeleteRun(bpy.types.Operator):
             return {'CANCELLED'}
 
 
-class STB_OT_DeleteLastRun(bpy.types.Operator):
+class NALANA_OT_DeleteLastRun(bpy.types.Operator):
     """Delete the last run from the success library"""
-    bl_idname = "stb.delete_last_run"
+    bl_idname = "nalana.delete_last_run"
     bl_label = "Delete Last Run"
     bl_description = "Delete the most recent run (for removing falsely marked successes)"
     bl_options = {'REGISTER', 'UNDO'}
@@ -2543,11 +2543,11 @@ class STB_OT_DeleteLastRun(bpy.types.Operator):
             return {'CANCELLED'}
 
 
-class STB_PT_SuccessLibrary(Panel):
+class NALANA_PT_SuccessLibrary(Panel):
     """Success Library Panel"""
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "STB"
+    bl_category = "Nalana"
     bl_label = "Success Library"
     bl_options = {'DEFAULT_CLOSED'}
     
@@ -2577,11 +2577,11 @@ class STB_PT_SuccessLibrary(Panel):
                 layout.separator()
                 
                 if last_run.get('status') != 'confirmed':
-                    layout.operator("stb.mark_last_run_success", icon="CHECKMARK", text="Mark as Success")
+                    layout.operator("nalana.mark_last_run_success", icon="CHECKMARK", text="Mark as Success")
                 else:
                     layout.label(text="✓ Already confirmed", icon="CHECKMARK")
                 
-                layout.operator("stb.delete_last_run", icon="TRASH", text="Delete Last Run")
+                layout.operator("nalana.delete_last_run", icon="TRASH", text="Delete Last Run")
             else:
                 layout.label(text="No recent runs", icon="INFO")
             
@@ -2609,7 +2609,7 @@ class STB_PT_SuccessLibrary(Panel):
                     row.label(text=f"Q:{run.get('quality_score', 0):.2f}")
                     
                     # Delete button for each run
-                    op = row.operator("stb.delete_run", text="", icon="TRASH")
+                    op = row.operator("nalana.delete_run", text="", icon="TRASH")
                     op.run_id = run.get("run_id", "")
             
         except Exception as e:
@@ -2618,15 +2618,15 @@ class STB_PT_SuccessLibrary(Panel):
             traceback.print_exc()
 
 
-class STB_OT_SubmitTextCommand(bpy.types.Operator):
+class NALANA_OT_SubmitTextCommand(bpy.types.Operator):
     """Submit typed text command to voice processing"""
-    bl_idname = "stb.submit_text_command"
+    bl_idname = "nalana.submit_text_command"
     bl_label = "Submit Text Command"
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
         wm = context.window_manager
-        text = getattr(wm, "stb_text_input", "").strip()
+        text = getattr(wm, "nalana_text_input", "").strip()
         
         if not text:
             self.report({'WARNING'}, "Please enter a command")
@@ -2636,28 +2636,28 @@ class STB_OT_SubmitTextCommand(bpy.types.Operator):
         try:
             import tempfile
             temp_dir = tempfile.gettempdir()
-            text_queue_file = os.path.join(temp_dir, "stb_text_queue.txt")
+            text_queue_file = os.path.join(temp_dir, "nalana_text_queue.txt")
             
             # Append to queue file (voice script will read and clear)
             with open(text_queue_file, "a", encoding="utf-8") as f:
                 f.write(text + "\n")
             
             # Clear the input field
-            wm.stb_text_input = ""
+            wm.nalana_text_input = ""
             
             self.report({'INFO'}, f"Command submitted: {text[:50]}...")
-            print(f"[SpeechToBlender] Text command submitted: {text}")
+            print(f"[Nalana] Text command submitted: {text}")
             return {'FINISHED'}
         except Exception as e:
             self.report({'ERROR'}, f"Failed to submit: {str(e)}")
-            print(f"[SpeechToBlender] Error submitting text command: {e}")
+            print(f"[Nalana] Error submitting text command: {e}")
             return {'CANCELLED'}
 
 
-class STB_PT_VoiceMode(Panel):
+class NALANA_PT_VoiceMode(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "STB"
+    bl_category = "Nalana"
     bl_label = "Voice Mode"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -2706,70 +2706,70 @@ class STB_PT_VoiceMode(Panel):
         text_box = col.box()
         text_col = text_box.column(align=True)
         text_col.label(text="📝 Type Command (for users without microphone)", icon="TEXT")
-        text_col.prop(wm, "stb_text_input", text="", icon="CONSOLE")
-        text_col.operator("stb.submit_text_command", text="Submit Command", icon="PLAY")
+        text_col.prop(wm, "nalana_text_input", text="", icon="CONSOLE")
+        text_col.operator("nalana.submit_text_command", text="Submit Command", icon="PLAY")
 
 
 # ───────── Safe stub: lazy import inside register, timers last ─────────
 _CLASSES = (
-    STB_AddonPreferences,
-    STB_OT_InstallDependencies,
-    STB_OT_MeshyGenerate,
-    STB_PT_MeshyTools,
-    STB_PT_MeshyStatus,
-    STB_OT_RPCStart,
-    STB_OT_RPCStop,
-    STB_OT_LiveStart,
-    STB_OT_LiveStop,
-    STB_PT_Live,
-    STB_OT_ToggleVoiceListening,
-    STB_PT_RPCBridge,
-    STB_PT_VoiceMode,
-    STB_OT_MarkLastRunSuccess,
-    STB_OT_DeleteRun,
-    STB_OT_DeleteLastRun,
-    STB_PT_SuccessLibrary,
+    NALANA_AddonPreferences,
+    NALANA_OT_InstallDependencies,
+    NALANA_OT_MeshyGenerate,
+    NALANA_PT_MeshyTools,
+    NALANA_PT_MeshyStatus,
+    NALANA_OT_RPCStart,
+    NALANA_OT_RPCStop,
+    NALANA_OT_LiveStart,
+    NALANA_OT_LiveStop,
+    NALANA_PT_Live,
+    NALANA_OT_ToggleVoiceListening,
+    NALANA_PT_RPCBridge,
+    NALANA_PT_VoiceMode,
+    NALANA_OT_MarkLastRunSuccess,
+    NALANA_OT_DeleteRun,
+    NALANA_OT_DeleteLastRun,
+    NALANA_PT_SuccessLibrary,
 )
 
 def register():
     # 1) prefs first
-    bpy.utils.register_class(STB_AddonPreferences)
-    bpy.utils.register_class(STB_OT_MarkLastRunSuccess)
-    bpy.utils.register_class(STB_OT_DeleteRun)
-    bpy.utils.register_class(STB_OT_DeleteLastRun)
-    bpy.utils.register_class(STB_PT_SuccessLibrary)
+    bpy.utils.register_class(NALANA_AddonPreferences)
+    bpy.utils.register_class(NALANA_OT_MarkLastRunSuccess)
+    bpy.utils.register_class(NALANA_OT_DeleteRun)
+    bpy.utils.register_class(NALANA_OT_DeleteLastRun)
+    bpy.utils.register_class(NALANA_PT_SuccessLibrary)
 
     # 2) ensure WM props before any panel draw
-    if not hasattr(bpy.types.WindowManager, "stb_meshy_prompt"):
-        bpy.types.WindowManager.stb_meshy_prompt = StringProperty(
+    if not hasattr(bpy.types.WindowManager, "nalana_meshy_prompt"):
+        bpy.types.WindowManager.nalana_meshy_prompt = StringProperty(
             name="Meshy Prompt",
             default="simple low-poly test object",
         )
-    if not hasattr(bpy.types.WindowManager, "stb_rpc_server_running"):
-        bpy.types.WindowManager.stb_rpc_server_running = bpy.props.BoolProperty(
+    if not hasattr(bpy.types.WindowManager, "nalana_rpc_server_running"):
+        bpy.types.WindowManager.nalana_rpc_server_running = bpy.props.BoolProperty(
             name="RPC Server Running",
             default=False,
             options={'HIDDEN'},
         )
-    if not hasattr(bpy.types.WindowManager, "stb_text_input"):
-        bpy.types.WindowManager.stb_text_input = StringProperty(
+    if not hasattr(bpy.types.WindowManager, "nalana_text_input"):
+        bpy.types.WindowManager.nalana_text_input = StringProperty(
             name="Text Command",
             default="",
             description="Type your command here if you can't use the microphone",
         )
     # 3) operators and panels
-    bpy.utils.register_class(STB_OT_MeshyGenerate)
-    bpy.utils.register_class(STB_PT_MeshyTools)
-    bpy.utils.register_class(STB_PT_MeshyStatus)
-    bpy.utils.register_class(STB_OT_RPCStart)
-    bpy.utils.register_class(STB_OT_RPCStop)
-    bpy.utils.register_class(STB_OT_LiveStart)
-    bpy.utils.register_class(STB_OT_LiveStop)
-    bpy.utils.register_class(STB_PT_Live)
-    bpy.utils.register_class(STB_OT_ToggleVoiceListening)
-    bpy.utils.register_class(STB_OT_SubmitTextCommand)
-    bpy.utils.register_class(STB_PT_RPCBridge)
-    bpy.utils.register_class(STB_PT_VoiceMode)
+    bpy.utils.register_class(NALANA_OT_MeshyGenerate)
+    bpy.utils.register_class(NALANA_PT_MeshyTools)
+    bpy.utils.register_class(NALANA_PT_MeshyStatus)
+    bpy.utils.register_class(NALANA_OT_RPCStart)
+    bpy.utils.register_class(NALANA_OT_RPCStop)
+    bpy.utils.register_class(NALANA_OT_LiveStart)
+    bpy.utils.register_class(NALANA_OT_LiveStop)
+    bpy.utils.register_class(NALANA_PT_Live)
+    bpy.utils.register_class(NALANA_OT_ToggleVoiceListening)
+    bpy.utils.register_class(NALANA_OT_SubmitTextCommand)
+    bpy.utils.register_class(NALANA_PT_RPCBridge)
+    bpy.utils.register_class(NALANA_PT_VoiceMode)
     
     # 4) Register Alt+F keyboard shortcut for voice listening toggle
     wm = bpy.context.window_manager
@@ -2777,12 +2777,12 @@ def register():
     if kc:
         km = kc.keymaps.new(name='Window', space_type='EMPTY')
         kmi = km.keymap_items.new(
-            STB_OT_ToggleVoiceListening.bl_idname,
+            NALANA_OT_ToggleVoiceListening.bl_idname,
             'F',
             'PRESS',
             alt=True
         )
-        print("[SpeechToBlender] Registered Alt+F shortcut for voice listening toggle")
+        print("[Nalana] Registered Alt+F shortcut for voice listening toggle")
 
     # 4) ensure openai is available in bundled Python
     _ensure_dependencies_installed()
@@ -2790,10 +2790,10 @@ def register():
     # 6) lazy import real module, never crash on error
     try:
         # Import your heavy modules late
-        from . import stb_core  # noqa: F401
+        from . import nalana_core  # noqa: F401
     except Exception as e:
         # do not raise, just log so Blender does not auto‑disable
-        print("[SpeechToBlender] STARTUP ERROR:", e)
+        print("[Nalana] STARTUP ERROR:", e)
 
     # 7) timers last if you add them later
 
@@ -2807,7 +2807,7 @@ def unregister():
             km = kc.keymaps.get('Window')
             if km:
                 for kmi in list(km.keymap_items):
-                    if kmi.idname == STB_OT_ToggleVoiceListening.bl_idname:
+                    if kmi.idname == NALANA_OT_ToggleVoiceListening.bl_idname:
                         km.keymap_items.remove(kmi)
     except Exception:
         pass
@@ -2821,7 +2821,7 @@ def unregister():
 
     # prefs
     try:
-        bpy.utils.unregister_class(STB_AddonPreferences)
+        bpy.utils.unregister_class(NALANA_AddonPreferences)
     except Exception:
         pass
 
@@ -2851,9 +2851,9 @@ def unregister():
     
     # WM props
     try:
-        if hasattr(bpy.types.WindowManager, "stb_meshy_prompt"):
-            del bpy.types.WindowManager.stb_meshy_prompt
-        if hasattr(bpy.types.WindowManager, "stb_rpc_server_running"):
-            del bpy.types.WindowManager.stb_rpc_server_running
+        if hasattr(bpy.types.WindowManager, "nalana_meshy_prompt"):
+            del bpy.types.WindowManager.nalana_meshy_prompt
+        if hasattr(bpy.types.WindowManager, "nalana_rpc_server_running"):
+            del bpy.types.WindowManager.nalana_rpc_server_running
     except Exception:
         pass

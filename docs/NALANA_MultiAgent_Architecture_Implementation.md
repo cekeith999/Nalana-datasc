@@ -58,10 +58,10 @@ This document describes the implementation of a multi-agent architecture for Spe
 
 ## File Structure
 
-Create these new files/folders in the SpeechToBlender directory:
+Create these new files/folders in the Nalana directory:
 
 ```
-SpeechToBlender/
+Nalana/
 ├── __init__.py                    # MODIFY: Add new RPC methods
 ├── voice_to_blender.py            # MODIFY: Slim down, call orchestrator
 │
@@ -1478,10 +1478,10 @@ Add this integration code to use the orchestrator:
 import sys
 import os
 
-# Add the SpeechToBlender directory to path for imports
-STB_DIR = os.path.dirname(os.path.abspath(__file__))
-if STB_DIR not in sys.path:
-    sys.path.insert(0, STB_DIR)
+# Add the Nalana directory to path for imports
+NALANA_DIR = os.path.dirname(os.path.abspath(__file__))
+if NALANA_DIR not in sys.path:
+    sys.path.insert(0, NALANA_DIR)
 
 # Import orchestrator (after path setup)
 try:

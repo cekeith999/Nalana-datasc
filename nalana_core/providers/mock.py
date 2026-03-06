@@ -1,4 +1,4 @@
-# stb_core/providers/mock.py
+# nalana_core/providers/mock.py
 import time
 from typing import Dict, Any
 

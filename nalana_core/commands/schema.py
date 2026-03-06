@@ -1,4 +1,4 @@
-# stb_core/commands/schema.py
+# nalana_core/commands/schema.py
 from dataclasses import dataclass
 from typing import Literal, Dict, Any
 

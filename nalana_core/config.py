@@ -6,7 +6,7 @@ _DEFAULTS = {
     "providers": {},
     "pipeline": {"timeout_s": 900, "poll_interval_s": 3},
     "safety": {"allow_file_ops": False, "whitelist_ops": []},
-    "logging": {"level": "INFO", "to_file": True, "path": "logs/stb.log"},
+    "logging": {"level": "INFO", "to_file": True, "path": "logs/nalana.log"},
     "artifacts_dir": "artifacts",  # default relative folder for generated files
 }
 

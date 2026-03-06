@@ -51,7 +51,7 @@ The add-on needs an AI API key to handle complex voice commands. **You don't nee
 
 ### Step 5: Test It
 
-1. In Blender, open the **STB** panel (press `N` to open the right sidebar, click the **"STB"** tab)
+1. In Blender, open the **Nalana** panel (press `N` to open the right sidebar, click the **"Nalana"** tab)
 2. Click **"Start RPC"** — a console window will open
 3. Wait for **"Voice: Running"** status
 4. Press **Alt+F** to toggle voice listening

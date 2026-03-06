@@ -1,4 +1,4 @@
-# Speech To Blender/stb_core/providers/registry.py
+# Nalana/nalana_core/providers/registry.py
 from typing import Dict, Any, Type
 from .meshy import MeshyProvider
 from .mock import MockProvider

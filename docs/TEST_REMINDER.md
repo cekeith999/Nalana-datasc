@@ -62,7 +62,7 @@ Command: "Create an iPhone 16"
 Steps:
   1. Complete creation with quality >= 0.7
   2. Check console for: "[Success Library] ✅ Auto-detected success candidate: [run_id]"
-  3. Open Blender UI → STB panel → Success Library tab
+  3. Open Blender UI → Nalana panel → Success Library tab
   4. Verify last run appears with correct quality scores
   5. Check that screenshot was saved in success_library/candidates/
 ```
