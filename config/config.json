@@ -1,0 +1,36 @@
+{
+  "artifacts_dir": "artifacts",
+  "profile": "dev",
+  "active_provider": "meshy",
+  "providers": {
+    "meshy": {
+      "api_key_env": "MESHY_API_KEY",
+      "base_url": "https://api.meshy.ai",
+      "model": "v5",
+      "endpoints": {
+        "text2mesh": [
+          "/openapi/v2/text-to-3d",
+          "/openapi/v1/text-to-3d"
+        ],
+        "img2mesh": [
+          "/openapi/v2/image-to-3d",
+          "/openapi/v1/image-to-3d"
+        ],
+        "task": [
+          "/openapi/v2/text-to-3d/{job_id}",
+          "/openapi/v2/image-to-3d/{job_id}",
+          "/openapi/v1/text-to-3d/{job_id}",
+          "/openapi/v1/image-to-3d/{job_id}"
+        ],
+        "stream": [
+          "/openapi/v2/text-to-3d/{job_id}/stream",
+          "/openapi/v2/image-to-3d/{job_id}/stream"
+        ]
+      },
+      "dl_format_preference": ["glb", "fbx", "usdz", "obj"]
+    }
+  },
+  "pipeline": { "timeout_s": 1800, "poll_interval_s": 4 },
+  "safety":  { "allow_file_ops": false, "whitelist_ops": ["ADD_MESH", "IMPORT", "TRANSFORM", "RENDER", "SET_MATERIAL", "SET_CAMERA"] },
+  "logging": { "level": "INFO", "to_file": true, "path": "logs/nalana.log" }
+}

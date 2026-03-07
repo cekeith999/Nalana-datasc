@@ -1,0 +1,52 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Blender
+*.blend1
+*.blend2
+*.blend@
+*.blend?
+*.autosave
+*.blend.lock
+
+# Logs
+logs/
+*.log
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+
+# Env & local secrets
+.env
+.env.*
+
+artifacts/
+
+# Distribution packages (too large for git)
+*.zip
+Nalana_*.zip
+
+# Bundled runtime (too large, users get it from releases)
+nalana_runtime/
+
+# Packaging scripts (dev tools)
+package_mvp.ps1
+test_install.ps1
+
+# Large documentation/export files
+cursor_detailed_model_communication_out.md
+
+# Temporary packaging directories
+*_MVP_temp/
+
+# Local Sync Scripts
+sync_to_github.bat
+auto_sync_background.ps1
