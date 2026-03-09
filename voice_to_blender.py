@@ -254,6 +254,13 @@ def _call_unified_ai_api(messages, system_prompt=None, temperature=0, model_over
                 print("⚠️ Google Gemini API key not set")
                 return None
             
+            # Check for invalid keys that look like Google Cloud API keys (AIza...)
+            # We want actual Gemini API keys from Google AI Studio.
+            # While AI Studio keys ALSO start with AIza, Google's genai library sometimes 
+            # requires explicitly trimming whitespace or has specific validation errors 
+            # if the key was pasted with invisible characters.
+            gemini_key = gemini_key.strip()
+            
             # Try new google.genai first (recommended)
             use_new_library = False
             try:
