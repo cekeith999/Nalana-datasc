@@ -5,9 +5,11 @@ version = "0.5.0"
 name = "Nalana"
 tagline = "Voice-Controlled 3D Creation for Blender"
 description = "Nalana allows you to build 3D scenes in Blender using real-time voice commands and AI."
-maintainers = ["Nalana Team"]
+maintainer = "Nalana Team <clarence@nalana.io>"
 type = "add-on"
 blender_version_min = "4.2.0"
+license = ["SPDX-License-Identifier: MIT"]
+copyright = ["2026 Nalana Team"]
 
 # A list of tags for the extension.
 tags = ["System"]
