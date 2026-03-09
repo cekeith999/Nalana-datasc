@@ -1622,8 +1622,12 @@ def process_with_orchestrator(transcript: str, rpc_client) -> bool:
     
     # Get OpenAI API key
     provider, openai_key, gemini_key = _get_ai_model_config()
+    
+    # Phase 3 Orchestrator is currently heavily tied to OpenAI's SDK.
+    # If the user is using Gemini or Claude, gracefully fail so the system
+    # can fall back to the standard gpt_to_json_react pipeline which DOES support Gemini.
     if not provider.startswith("openai") or not openai_key:
-        print("[Orchestrator] ❌ OpenAI API key required")
+        print(f"[Orchestrator] ⚠️ Orchestrator requires OpenAI. Provider '{provider}' selected. Falling back to standard ReAct pipeline.")
         return False
     
     try:
