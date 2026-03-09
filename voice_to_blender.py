@@ -4016,26 +4016,18 @@ def gpt_to_json(transcript: str, modeling_context=None, mesh_analysis=None, targ
     if not ENABLE_GPT_FALLBACK:
         return None
 
-    # Get API key (may have been updated via RPC)
-    api_key = _get_openai_api_key()
-    if not api_key:
+    provider, openai_key, gemini_key = _get_ai_model_config()
+    
+    if provider.startswith("openai") and not openai_key:
         # Only print warning once per session to avoid spam
         if not hasattr(gpt_to_json, "_warned"):
-            print("⚠️ OpenAI API key not set; skipping GPT fallback.")
+            print("⚠️ OpenAI API key not set; skipping AI fallback.")
             gpt_to_json._warned = True
         return None
-    
-    # Validate key format
-    api_key = api_key.strip()
-    if not api_key.startswith("sk-") and not api_key.startswith("sk-proj-"):
-        if not hasattr(gpt_to_json, "_format_warned"):
-            print(f"⚠️ OpenAI API key format looks invalid (got: {api_key[:10]}...). Keys should start with 'sk-' or 'sk-proj-'")
-            gpt_to_json._format_warned = True
-    
-    try:
-        from openai import OpenAI
-    except Exception:
-        print("⚠️ openai package not available; pip install openai")
+    elif provider.startswith("google") and not gemini_key:
+        if not hasattr(gpt_to_json, "_warned"):
+            print("⚠️ Google Gemini API key not set; skipping AI fallback.")
+            gpt_to_json._warned = True
         return None
 
     # Build system prompt with context if available (Phase 2 + Phase 3)
@@ -4350,13 +4342,12 @@ def gpt_to_json(transcript: str, modeling_context=None, mesh_analysis=None, targ
             if screenshot_data:
                 print(f"[GPT] User message includes screenshot: {len(screenshot_data):,} bytes")
         
-        openai_model = _get_openai_model_name()
-        resp = client.chat.completions.create(
-            model=openai_model,
-            messages=messages,
-            temperature=0,
-        )
-        out = (resp.choices[0].message.content or "").strip()
+        out = _call_unified_ai_api(messages, system_prompt=system, temperature=0)
+        
+        if not out:
+            print("⚠️ AI API returned empty or failed.")
+            return None
+            
         out = out.replace("```json", "").replace("```", "").strip()
         if out.lower().startswith("json"):
             out = out.split("\n", 1)[-1].strip()
@@ -4381,18 +4372,15 @@ def gpt_to_json(transcript: str, modeling_context=None, mesh_analysis=None, targ
         error_msg = str(e)
         # Check for common API key errors
         if "Invalid API key" in error_msg or "401" in error_msg or "unauthorized" in error_msg.lower():
-            print(f"⚠️ GPT error: Invalid API key. Please check your OpenAI API key in Blender preferences.")
-            print(f"   Key preview: {api_key[:10]}..." if len(api_key) > 10 else f"   Key: {api_key}")
-            print(f"   Key length: {len(api_key)} characters")
+            print(f"⚠️ AI error: Invalid API key. Please check your API key in Blender preferences.")
             print(f"   Troubleshooting:")
-            print(f"   1. Verify the key is correct in OpenAI dashboard: https://platform.openai.com/api-keys")
+            print(f"   1. Verify the key is correct in your provider's dashboard")
             print(f"   2. Check if the key has been revoked or expired")
-            print(f"   3. Ensure the key has model access (e.g. gpt-4o or gpt-5)")
-            print(f"   4. For project keys (sk-proj-), verify project billing is active")
+            print(f"   3. Ensure the key has model access")
         elif "429" in error_msg or "rate limit" in error_msg.lower():
-            print(f"⚠️ GPT error: Rate limit exceeded. Please try again later.")
+            print(f"⚠️ AI error: Rate limit exceeded. Please try again later.")
         else:
-            print(f"⚠️ GPT error: {error_msg}")
+            print(f"⚠️ AI error: {error_msg}")
         return None
 
 # ------------------ RPC send ------------------
@@ -4449,24 +4437,19 @@ if __name__ == "__main__":
                 print("   The script will continue but commands won't work until RPC is available.")
                 traceback.print_exc()
         
-        # Get OpenAI API key from RPC (Blender preferences) - this will cache it
+        # Get API key from RPC (Blender preferences) - this will cache it
         try:
-            api_key = _get_openai_api_key()
-            if api_key:
-                key_preview = api_key[:7] + "..." if len(api_key) > 7 else api_key
+            provider, openai_key, gemini_key = _get_ai_model_config()
+            if provider.startswith("openai") and openai_key:
+                key_preview = openai_key[:7] + "..." if len(openai_key) > 7 else openai_key
                 print(f"✅ OpenAI API key loaded and cached ({key_preview})")
-                if not api_key.startswith("sk-") and not api_key.startswith("sk-proj-"):
-                    print(f"⚠️ Warning: API key format looks unusual (should start with 'sk-' or 'sk-proj-')")
+            elif provider.startswith("google") and gemini_key:
+                key_preview = gemini_key[:7] + "..." if len(gemini_key) > 7 else gemini_key
+                print(f"✅ Google Gemini API key loaded and cached ({key_preview})")
             elif ENABLE_GPT_FALLBACK:
-                print("⚠️ OpenAI API key not set in preferences or environment; GPT fallback disabled")
+                print("⚠️ AI API key not set in preferences or environment; AI fallback disabled")
         except Exception as e:
-            print("⚠️ Could not get OpenAI API key:", e)
-            try:
-                api_key = _get_openai_api_key()
-                if api_key and ENABLE_GPT_FALLBACK:
-                    print("✅ Using OpenAI API key from environment variable (cached)")
-            except Exception:
-                pass
+            print("⚠️ Could not get AI API key:", e)
 
         # Text queue file path (for typed commands from Blender UI)
         import tempfile
