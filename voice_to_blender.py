@@ -4281,9 +4281,6 @@ def gpt_to_json(transcript: str, modeling_context=None, mesh_analysis=None, targ
         #         print(f"[DEBUG] ❌ Key validation test failed: {test_e}")
         #         # Continue anyway to see the actual error
         
-        # Create client with explicit key
-        client = OpenAI(api_key=api_key)
-        
         # Build messages with conversation history and image
         messages = [{"role": "system", "content": system}]
         
