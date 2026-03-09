@@ -274,12 +274,30 @@ def _call_unified_ai_api(messages, system_prompt=None, temperature=0, model_over
             # Determine model name - try to auto-detect available models
             model_name = "gemini-1.5-pro"  # Default fallback
             
+            # #region agent log
+            try:
+                import json as _json, time as _time, os as _os
+                _log_path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "debug-5a7a26.log")
+                with open(_log_path, "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({"sessionId":"5a7a26","id":f"log_{int(_time.time()*1000)}_gemini_start","timestamp":int(_time.time()*1000),"location":"voice_to_blender.py:274","message":"Starting Gemini model detection","data":{"provider": provider},"runId":"run2","hypothesisId":"H3_GEMINI_CRASH"}) + "\n")
+            except Exception: pass
+            # #endregion
+            
             # Try to list available models to find the correct name
             try:
                 if use_new_library:
                     # New library API
                     available_models = client.models.list()
                     model_names = [m.name.split('/')[-1] for m in available_models]
+                    
+                    # #region agent log
+                    try:
+                        import json as _json, time as _time, os as _os
+                        _log_path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "debug-5a7a26.log")
+                        with open(_log_path, "a", encoding="utf-8") as _f:
+                            _f.write(_json.dumps({"sessionId":"5a7a26","id":f"log_{int(_time.time()*1000)}_gemini_models","timestamp":int(_time.time()*1000),"location":"voice_to_blender.py:284","message":"Listed Gemini models","data":{"model_count": len(model_names), "sample": model_names[:5]},"runId":"run2","hypothesisId":"H3_GEMINI_CRASH"}) + "\n")
+                    except Exception: pass
+                    # #endregion
                 else:
                     # Old library API
                     available_models = genai.list_models()
@@ -451,6 +469,16 @@ def _call_unified_ai_api(messages, system_prompt=None, temperature=0, model_over
                     contents=contents,
                     config={"temperature": temperature}
                 )
+                
+                # #region agent log
+                try:
+                    import json as _json, time as _time, os as _os
+                    _log_path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "debug-5a7a26.log")
+                    with open(_log_path, "a", encoding="utf-8") as _f:
+                        _f.write(_json.dumps({"sessionId":"5a7a26","id":f"log_{int(_time.time()*1000)}_gemini_success","timestamp":int(_time.time()*1000),"location":"voice_to_blender.py:465","message":"Gemini call successful","data":{"model": model_name},"runId":"run2","hypothesisId":"H3_GEMINI_CRASH"}) + "\n")
+                except Exception: pass
+                # #endregion
+                
                 return response.text.strip() if response.text else None
             else:
                 # Old library API
@@ -470,6 +498,16 @@ def _call_unified_ai_api(messages, system_prompt=None, temperature=0, model_over
         print(f"⚠️ AI API error ({provider}): {e}")
         import traceback
         traceback.print_exc()
+        
+        # #region agent log
+        try:
+            import json as _json, time as _time, os as _os
+            _log_path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "debug-5a7a26.log")
+            with open(_log_path, "a", encoding="utf-8") as _f:
+                _f.write(_json.dumps({"sessionId":"5a7a26","id":f"log_{int(_time.time()*1000)}_gemini_err","timestamp":int(_time.time()*1000),"location":"voice_to_blender.py:483","message":"Gemini API Exception","data":{"error": str(e), "provider": provider},"runId":"run2","hypothesisId":"H3_GEMINI_CRASH"}) + "\n")
+        except Exception: pass
+        # #endregion
+        
         return None
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
