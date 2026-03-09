@@ -4237,11 +4237,13 @@ def gpt_to_json(transcript: str, modeling_context=None, mesh_analysis=None, targ
 
     print("🧠 GPT mapping…")
     try:
-        api_key = _get_openai_api_key().strip()
+        # Get API key (may have been updated via RPC)
+        provider, openai_key, gemini_key = _get_ai_model_config()
+        api_key = openai_key if provider.startswith("openai") else gemini_key
         
         # Validate key is present
         if not api_key:
-            print("⚠️ GPT error: API key is empty")
+            print("⚠️ AI error: API key is empty")
             return None
         
         # Debug: show key length and first/last few chars (for troubleshooting)
