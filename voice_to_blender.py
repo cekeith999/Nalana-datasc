@@ -259,7 +259,15 @@ def _call_unified_ai_api(messages, system_prompt=None, temperature=0, model_over
             # While AI Studio keys ALSO start with AIza, Google's genai library sometimes 
             # requires explicitly trimming whitespace or has specific validation errors 
             # if the key was pasted with invisible characters.
-            gemini_key = gemini_key.strip()
+            
+            # Very aggressive cleaning to handle any potential invisible chars
+            if gemini_key:
+                # Remove all whitespace, newlines, tabs
+                gemini_key = ''.join(gemini_key.split())
+                # Remove non-printable characters
+                gemini_key = ''.join(c for c in gemini_key if c.isprintable())
+                # Strip standard whitespace again just in case
+                gemini_key = gemini_key.strip()
             
             # Try new google.genai first (recommended)
             use_new_library = False
