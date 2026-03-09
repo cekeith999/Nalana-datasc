@@ -1,0 +1,15 @@
+schema_version = "1.0.0"
+
+id = "nalana"
+version = "0.5.0"
+name = "Nalana"
+description = "Voice-Controlled 3D Creation for Blender"
+maintainers = ["Nalana Team"]
+type = "add-on"
+blender_version_min = "4.2.0"
+
+# A list of tags for the extension.
+tags = ["System"]
+
+# Optional: Link to the issue tracker or source code.
+url = "https://github.com/cekeith999/Nalana-datasc"
