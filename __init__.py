@@ -2766,6 +2766,7 @@ def register():
             description="Type your command here if you can't use the microphone",
         )
     # 3) operators and panels
+    bpy.utils.register_class(NALANA_OT_InstallDependencies)
     bpy.utils.register_class(NALANA_OT_MeshyGenerate)
     bpy.utils.register_class(NALANA_PT_MeshyTools)
     bpy.utils.register_class(NALANA_PT_MeshyStatus)
