@@ -2356,6 +2356,10 @@ class NALANA_PT_Live(Panel):
         box.label(text="RPC vs Live:", icon="QUESTION")
         box.label(text="RPC (classic): turn-based voice script (Whisper + GPT), uses Start RPC", icon="INFO")
         box.label(text="Live (Gemini): streaming mic via bundled runtime, code runs as you speak", icon="INFO")
+        
+        layout.separator()
+        layout.label(text="Setup & Troubleshooting:", icon="TOOL_SETTINGS")
+        layout.operator("nalana.install_dependencies", icon="IMPORT", text="Install Python Dependencies")
 
 
 class NALANA_OT_ToggleVoiceListening(bpy.types.Operator):
@@ -2413,6 +2417,10 @@ class NALANA_PT_RPCBridge(Panel):
             layout.label(text=f"RPC: Stopped", icon="X")
             layout.label(text="Voice: Stopped", icon="X")
             layout.operator("nalana.rpc_start", icon="PLAY", text="Start RPC")
+            
+        layout.separator()
+        layout.label(text="Setup & Troubleshooting:", icon="TOOL_SETTINGS")
+        layout.operator("nalana.install_dependencies", icon="IMPORT", text="Install Python Dependencies")
 
 
 class NALANA_OT_MarkLastRunSuccess(bpy.types.Operator):
