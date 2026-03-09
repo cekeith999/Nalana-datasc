@@ -24,6 +24,14 @@ from agents import TaskSpec, ExecutionResult, EvaluationResult
 from agents.language_translator import LanguageTranslator
 from agents.code_generator import CodeGenerator
 from agents.semantic_evaluator import SemanticEvaluator
+# #region agent log
+try:
+    import json as _json, time as _time, os as _os, sys as _sys
+    _log_path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "debug-5a7a26.log")
+    with open(_log_path, "a", encoding="utf-8") as _f:
+        _f.write(_json.dumps({"sessionId":"5a7a26","id":f"log_{int(_time.time()*1000)}_import","timestamp":int(_time.time()*1000),"location":"agents/orchestrator.py","message":"Attempting import","data":{"sys_path": _sys.path},"runId":"run1","hypothesisId":"H2_IMPORT"}) + "\n")
+except Exception: pass
+# #endregion
 from analyzers.focus_stack import get_focus_stack, FocusStack
 from prompts.templates import PLANNING_PROMPT
 

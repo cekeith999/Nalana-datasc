@@ -224,11 +224,28 @@ def _call_unified_ai_api(messages, system_prompt=None, temperature=0, model_over
                 model_name = "gpt-5"  # Default for any other openai-* provider
             
             # OpenAI expects messages in their format
-            resp = client.chat.completions.create(
-                model=model_name,
-                messages=all_messages,
-                temperature=temperature,
-            )
+            kwargs = {
+                "model": model_name,
+                "messages": all_messages,
+            }
+            
+            # o1/o3 and newer reasoning models do not support temperature=0
+            # if model_name is gpt-5 or an o-series model, we omit temperature (or set it to 1)
+            if not (model_name.startswith("o") or model_name == "gpt-5"):
+                kwargs["temperature"] = temperature
+            elif temperature == 1:
+                kwargs["temperature"] = 1
+                
+            # #region agent log
+            try:
+                import json as _json, time as _time, os as _os
+                _log_path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "debug-5a7a26.log")
+                with open(_log_path, "a", encoding="utf-8") as _f:
+                    _f.write(_json.dumps({"sessionId":"5a7a26","id":f"log_{int(_time.time()*1000)}_openai","timestamp":int(_time.time()*1000),"location":"voice_to_blender.py","message":"OpenAI kwargs","data":{"kwargs_keys": list(kwargs.keys()), "model": model_name},"runId":"run1","hypothesisId":"H1_TEMPERATURE"}) + "\n")
+            except Exception: pass
+            # #endregion
+            
+            resp = client.chat.completions.create(**kwargs)
             return (resp.choices[0].message.content or "").strip()
             
         elif provider.startswith("google"):
