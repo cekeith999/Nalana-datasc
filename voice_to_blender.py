@@ -1759,67 +1759,72 @@ def gpt_to_json_react(transcript: str, modeling_context=None, mesh_analysis=None
     print(f"   provider.startswith('openai'): {provider.startswith('openai') if provider else False}")
     print(f"   has openai_key: {bool(openai_key)}")
     
-    if ENABLE_LANGUAGE_TRANSLATOR and LANGUAGE_TRANSLATOR_AVAILABLE and provider.startswith("openai") and openai_key:
-        print("[LanguageTranslator] ✅ All conditions met, attempting to parse intent...")
-        try:
-            from openai import OpenAI
-            print("[LanguageTranslator] ✅ OpenAI imported successfully")
-            openai_client = OpenAI(api_key=openai_key)
-            print("[LanguageTranslator] ✅ OpenAI client created")
-            translator = get_language_translator(openai_client)
-            print("[LanguageTranslator] ✅ Language Translator instance created")
-            
-            # Get selected objects and active object from modeling context
-            selected_objects = []
-            active_object = None
-            if modeling_context and not modeling_context.get("error"):
-                selected = modeling_context.get("selected_objects", [])
-                selected_objects = [o.get("name", "") for o in selected if o.get("name")]
-                active = modeling_context.get("active_object")
-                if active:
-                    active_object = active.get("name")
-            
-            print(f"[LanguageTranslator] Calling translate() with transcript: '{transcript[:50]}...'")
-            print(f"   selected_objects: {selected_objects}")
-            print(f"   active_object: {active_object}")
-            
-            # Translate transcript to TaskSpec
-            task_spec = translator.translate(
-                transcript=transcript,
-                scene_context=scene_analysis,
-                selected_objects=selected_objects,
-                active_object=active_object,
-                modeling_context=modeling_context
-            )
-            
-            print("[LanguageTranslator] ✅ translate() completed successfully")
-            
-            # Log TaskSpec for debugging
-            print(f"[LanguageTranslator] ✅ Parsed intent:")
-            print(f"   Task Type: {task_spec.task_type.value}")
-            print(f"   User Intent: {task_spec.user_intent}")
-            print(f"   Target Objects: {task_spec.target_objects}")
-            if task_spec.target_concept:
-                print(f"   Target Concept: {task_spec.target_concept}")
-            if task_spec.inferred_operations:
-                print(f"   Inferred Operations: {len(task_spec.inferred_operations)}")
-                for i, op in enumerate(task_spec.inferred_operations[:3], 1):  # Show first 3
-                    print(f"      {i}. {op.action} on {op.target}: {op.reason[:60]}...")
-            print(f"   Confidence: {task_spec.confidence:.2f}")
-            if task_spec.ambiguities:
-                print(f"   Ambiguities: {', '.join(task_spec.ambiguities)}")
-            
-            # Use resolved target objects from TaskSpec if available
-            if task_spec.target_objects:
-                # Update target_object for downstream processing
-                if not target_object and len(task_spec.target_objects) == 1:
-                    target_object = task_spec.target_objects[0]
-                    print(f"[LanguageTranslator] Using resolved target: {target_object}")
-        except Exception as e:
-            print(f"[LanguageTranslator] ⚠️ Failed to parse intent: {e}")
-            import traceback
-            traceback.print_exc()  # Always print traceback for debugging
-            task_spec = None
+    if ENABLE_LANGUAGE_TRANSLATOR and LANGUAGE_TRANSLATOR_AVAILABLE:
+        # Note: Language Translator is currently heavily tied to OpenAI's SDK.
+        # If using Gemini, we skip the translator and proceed to standard ReAct loop.
+        if not (provider.startswith("openai") and openai_key):
+            print(f"[LanguageTranslator] ⚠️ Requires OpenAI. Provider '{provider}' selected. Skipping intent translation.")
+        else:
+            print("[LanguageTranslator] ✅ All conditions met, attempting to parse intent...")
+            try:
+                from openai import OpenAI
+                print("[LanguageTranslator] ✅ OpenAI imported successfully")
+                openai_client = OpenAI(api_key=openai_key)
+                print("[LanguageTranslator] ✅ OpenAI client created")
+                translator = get_language_translator(openai_client)
+                print("[LanguageTranslator] ✅ Language Translator instance created")
+                
+                # Get selected objects and active object from modeling context
+                selected_objects = []
+                active_object = None
+                if modeling_context and not modeling_context.get("error"):
+                    selected = modeling_context.get("selected_objects", [])
+                    selected_objects = [o.get("name", "") for o in selected if o.get("name")]
+                    active = modeling_context.get("active_object")
+                    if active:
+                        active_object = active.get("name")
+                
+                print(f"[LanguageTranslator] Calling translate() with transcript: '{transcript[:50]}...'")
+                print(f"   selected_objects: {selected_objects}")
+                print(f"   active_object: {active_object}")
+                
+                # Translate transcript to TaskSpec
+                task_spec = translator.translate(
+                    transcript=transcript,
+                    scene_context=scene_analysis,
+                    selected_objects=selected_objects,
+                    active_object=active_object,
+                    modeling_context=modeling_context
+                )
+                
+                print("[LanguageTranslator] ✅ translate() completed successfully")
+                
+                # Log TaskSpec for debugging
+                print(f"[LanguageTranslator] ✅ Parsed intent:")
+                print(f"   Task Type: {task_spec.task_type.value}")
+                print(f"   User Intent: {task_spec.user_intent}")
+                print(f"   Target Objects: {task_spec.target_objects}")
+                if task_spec.target_concept:
+                    print(f"   Target Concept: {task_spec.target_concept}")
+                if task_spec.inferred_operations:
+                    print(f"   Inferred Operations: {len(task_spec.inferred_operations)}")
+                    for i, op in enumerate(task_spec.inferred_operations[:3], 1):  # Show first 3
+                        print(f"      {i}. {op.action} on {op.target}: {op.reason[:60]}...")
+                print(f"   Confidence: {task_spec.confidence:.2f}")
+                if task_spec.ambiguities:
+                    print(f"   Ambiguities: {', '.join(task_spec.ambiguities)}")
+                
+                # Use resolved target objects from TaskSpec if available
+                if task_spec.target_objects:
+                    # Update target_object for downstream processing
+                    if not target_object and len(task_spec.target_objects) == 1:
+                        target_object = task_spec.target_objects[0]
+                        print(f"[LanguageTranslator] Using resolved target: {target_object}")
+            except Exception as e:
+                print(f"[LanguageTranslator] ⚠️ Failed to parse intent: {e}")
+                import traceback
+                traceback.print_exc()  # Always print traceback for debugging
+                task_spec = None
     else:
         print("[LanguageTranslator] ❌ Conditions not met, skipping Language Translator")
         if not ENABLE_LANGUAGE_TRANSLATOR:
