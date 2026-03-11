@@ -28,7 +28,7 @@ cd Nalana-datasc
 1. Open **Blender 5.x**
 2. Go to **Edit → Preferences → Add-ons**
 3. Click **"Install from Disk..."**
-4. Navigate to the repo and select the `SpeechToBlender/` folder (or the ZIP if provided)
+4. Navigate to the repo and select the `Nalana-datasc/` folder (or the ZIP if provided)
 5. Enable the add-on by checking the box next to **"Blender STB Tool"**
 
 ### Step 3: Install Python Dependencies
